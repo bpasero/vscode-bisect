@@ -98,7 +98,7 @@ class Launcher {
                         return spawn('bash', [executable, ...args]);
                     case Platform.WindowsX64:
                     case Platform.WindowsArm:
-                        throw new Error('Not yet implemented');
+                        return spawn(executable, args);
                 }
 
 
@@ -126,7 +126,7 @@ class Launcher {
                     case Platform.LinuxArm:
                         return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.sh')
                     case Platform.WindowsX64:
-                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.bat')
+                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.cmd')
                 }
 
             case Runtime.Desktop:
