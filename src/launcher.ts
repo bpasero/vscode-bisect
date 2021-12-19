@@ -9,7 +9,7 @@ import open from "open";
 import kill from "tree-kill";
 import { IBuild } from "./builds";
 import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
-import { rmSync } from "fs";
+import { mkdirSync, rmSync } from "fs";
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -20,9 +20,12 @@ class Launcher {
     private static readonly WEB_AVAILABLE_REGEX = new RegExp('Web UI available at (http://localhost:8000/\\?tkn=.+)');
 
     static {
+
+        // Recreate user data & extension folder
         try {
             rmSync(DATA_FOLDER, { recursive: true });
         } catch (error) { }
+        mkdirSync(DATA_FOLDER);
     }
 
     async launch(build: IBuild): Promise<IInstance> {
@@ -46,7 +49,7 @@ class Launcher {
         });
 
         cp.stderr.on('data', data => {
-            console.error(`Error launching server: ${data.toString()}`);
+            console.error(`[Server]: ${data.toString()}`);
         });
 
         return {
@@ -60,7 +63,7 @@ class Launcher {
         const cp = this.spawnBuild(build);
 
         cp.stderr.on('data', data => {
-            console.error(`Error launching electron: ${data.toString()}`);
+            console.error(`[Electron]: ${data.toString()}`);
         });
 
         return {
@@ -74,11 +77,16 @@ class Launcher {
     private spawnBuild(build: IBuild): ChildProcessWithoutNullStreams {
         const executable = this.getBuildExecutable(build);
         const args = [
-            '--user-data-dir',
-            USER_DATA_FOLDER,
             '--extensions-dir',
             EXTENSIONS_FOLDER
         ];
+
+        if (build.runtime === Runtime.Desktop) {
+            args.push(
+                '--user-data-dir',
+                USER_DATA_FOLDER
+            );
+        }
 
         switch (build.runtime) {
             case Runtime.Web:
