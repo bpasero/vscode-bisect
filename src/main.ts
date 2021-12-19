@@ -3,13 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { builds, Runtime } from "./builds";
+import { builds } from "./builds";
+import { Runtime } from "./constants";
 import { launcher } from "./launcher";
 
 async function main(): Promise<void> {
 
     // Pick a build
-    const releasedBuilds = await builds.fetchBuilds(Runtime.Web);
+    const releasedBuilds = await builds.fetchBuilds(Runtime.Desktop);
     const build = releasedBuilds[0];
 
     // Install build

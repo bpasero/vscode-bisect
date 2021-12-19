@@ -7,8 +7,9 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { join } from "path";
 import open from "open";
 import kill from "tree-kill";
-import { IBuild, Runtime } from "./builds";
-import { BUILD_FOLDER, EXTENSIONS_FOLDER, Platform, platform, USER_DATA_FOLDER } from "./constants";
+import { IBuild } from "./builds";
+import { BUILD_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
+import { rmSync } from "fs";
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -17,6 +18,11 @@ export interface IInstance {
 class Launcher {
 
     private static readonly WEB_AVAILABLE_REGEX = new RegExp('Web UI available at (http://localhost:8000/\\?tkn=.+)');
+
+    static {
+        rmSync(USER_DATA_FOLDER, { recursive: true });
+        rmSync(EXTENSIONS_FOLDER, { recursive: true });
+    }
 
     async launch(build: IBuild): Promise<IInstance> {
         switch (build.runtime) {
@@ -46,7 +52,14 @@ class Launcher {
     }
 
     private launchElectron(build: IBuild): IInstance {
-        throw new Error('Unsupported');
+        const cp = this.spawnBuild(build);
+
+        return {
+            stop: () => new Promise<void>(resolve => {
+                cp.kill();
+                resolve();
+            })
+        }
     }
 
     private spawnBuild(build: IBuild): ChildProcessWithoutNullStreams {
@@ -58,12 +71,31 @@ class Launcher {
             EXTENSIONS_FOLDER
         ];
 
-        switch (platform) {
-            case Platform.MacOSX64:
-            case Platform.LinuxX64:
-                return spawn('bash', [executable, ...args]);
-            case Platform.WindowsX64:
-                throw new Error('Unsupported');
+        switch (build.runtime) {
+            case Runtime.Web:
+                switch (platform) {
+                    case Platform.MacOSX64:
+                    case Platform.MacOSArm:
+                    case Platform.LinuxX64:
+                    case Platform.LinuxArm:
+                        return spawn('bash', [executable, ...args]);
+                    case Platform.WindowsX64:
+                    case Platform.WindowsArm:
+                        throw new Error('Not yet implemented');
+                }
+
+
+            case Runtime.Desktop:
+                switch (platform) {
+                    case Platform.MacOSX64:
+                    case Platform.MacOSArm:
+                        return spawn(executable, args);
+                    case Platform.LinuxX64:
+                    case Platform.LinuxArm:
+                    case Platform.WindowsX64:
+                    case Platform.WindowsArm:
+                        throw new Error('Not yet implemented');
+                }
         }
     }
 
@@ -79,7 +111,16 @@ class Launcher {
                 }
 
             case Runtime.Desktop:
-                throw new Error('Not yet supported');
+                switch (platform) {
+                    case Platform.MacOSX64:
+                    case Platform.MacOSArm:
+                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'Contents', 'MacOS', 'Electron')
+                    case Platform.LinuxX64:
+                    case Platform.LinuxArm:
+                    case Platform.WindowsX64:
+                    case Platform.WindowsArm:
+                        throw new Error('Not yet implemented');
+                }
         }
     }
 
@@ -96,7 +137,17 @@ class Launcher {
                 }
 
             case Runtime.Desktop:
-                throw new Error('Not yet supported');
+                switch (platform) {
+                    case Platform.MacOSX64:
+                        return 'Visual Studio Code - Insiders.app';
+                    case Platform.MacOSArm:
+                        return 'Visual Studio Code - Insiders.app';
+                    case Platform.LinuxX64:
+                    case Platform.LinuxArm:
+                    case Platform.WindowsX64:
+                    case Platform.WindowsArm:
+                        throw new Error('Not yet implemented');
+                }
         }
     }
 }

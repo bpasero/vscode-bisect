@@ -9,5 +9,9 @@
     "strict": true,
     "skipLibCheck": true,
     "sourceMap": true
-  }
+  },
+  "exclude": [
+    ".builds", 
+    ".data"
+  ]
 }

@@ -4,21 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { join } from "path";
-import { BUILD_FOLDER, Platform, platform } from "./constants";
+import { BUILD_FOLDER, Platform, platform, Runtime } from "./constants";
 import { fileGet, jsonGet } from "./fetch";
 import { exists, unzip } from "./files";
-
-export enum Runtime {
-    Web = 1,
-    Desktop
-}
 
 export interface IBuild {
     runtime: Runtime;
     commit: string;
 }
 
-class BuildsServer {
+class Builds {
 
     async fetchBuilds(runtime: Runtime): Promise<IBuild[]> {
         const commits = await jsonGet<Array<string>>(this.getBuildsUrl(runtime));
@@ -31,15 +26,31 @@ class BuildsServer {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
+                    case Platform.MacOSArm:
                         return 'https://update.code.visualstudio.com/api/commits/insider/server-darwin-web';
                     case Platform.LinuxX64:
+                    case Platform.LinuxArm:
                         return 'https://update.code.visualstudio.com/api/commits/insider/server-linux-x64-web';
                     case Platform.WindowsX64:
+                    case Platform.WindowsArm:
                         return 'https://update.code.visualstudio.com/api/commits/insider/server-win32-x64-web';
                 }
 
             case Runtime.Desktop:
-                throw new Error('Not yet supported');
+                switch (platform) {
+                    case Platform.MacOSX64:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/darwin';
+                    case Platform.MacOSArm:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/darwin-arm64';
+                    case Platform.LinuxX64:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/linux-x64';
+                    case Platform.LinuxArm:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/linux-arm64';
+                    case Platform.WindowsX64:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/win32-x64';
+                    case Platform.WindowsArm:
+                        return 'https://update.code.visualstudio.com/api/commits/insider/win32-arm64';
+                }
         }
     }
 
@@ -47,7 +58,8 @@ class BuildsServer {
         const path = join(BUILD_FOLDER, commit, this.getBuildName(runtime));
 
         if (!await exists(path)) {
-            await fileGet(this.getBuildUrl({ runtime, commit }), path);
+            const url = `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+            await fileGet(url, path);
             await unzip(path);
         }
     }
@@ -65,26 +77,19 @@ class BuildsServer {
                 }
 
             case Runtime.Desktop:
-                throw new Error('Not yet supported');
-        }
-    }
-
-    private getBuildUrl({ runtime, commit }: IBuild): string {
-        switch (runtime) {
-            case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+                        return 'VSCode-darwin.zip';
+                    case Platform.MacOSArm:
+                        return 'VSCode-darwin-arm64.zip';
                     case Platform.LinuxX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+                    case Platform.LinuxArm:
                     case Platform.WindowsX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+                    case Platform.WindowsArm:
+                        throw new Error('Not yet implemented');
                 }
-
-            case Runtime.Desktop:
-                throw new Error('Not yet supported');
         }
     }
 }
 
-export const builds = new BuildsServer();
+export const builds = new Builds();

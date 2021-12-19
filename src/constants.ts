@@ -15,8 +15,30 @@ export const EXTENSIONS_FOLDER = join(DATA_FOLDER, 'extensions');
 
 export enum Platform {
     MacOSX64 = 1,
-    LinuxX64 = 2,
-    WindowsX64 = 3
+    MacOSArm = 2,
+    LinuxX64 = 3,
+    LinuxArm = 4,
+    WindowsX64 = 5,
+    WindowsArm = 6
 }
 
-export const platform: Platform = process.platform === 'win32' ? Platform.WindowsX64 : process.platform === 'darwin' ? Platform.MacOSX64 : Platform.LinuxX64;
+export const platform = (() => {
+    if (process.platform === 'win32') {
+        return process.arch === 'arm64' ? Platform.WindowsArm : Platform.WindowsX64;
+    }
+
+    if (process.platform === 'darwin') {
+        return process.arch === 'arm64' ? Platform.MacOSArm : Platform.MacOSX64;
+    }
+
+    if (process.platform === 'linux') {
+        return process.arch === 'arm64' ? Platform.LinuxArm : Platform.LinuxX64;
+    }
+
+    throw new Error('Unsupported platform.');
+})();
+
+export enum Runtime {
+    Web = 1,
+    Desktop
+}
