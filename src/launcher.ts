@@ -105,7 +105,9 @@ class Launcher {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
+                    case Platform.MacOSArm:
                     case Platform.LinuxX64:
+                    case Platform.LinuxArm:
                         return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.sh')
                     case Platform.WindowsX64:
                         return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.bat')
@@ -130,10 +132,13 @@ class Launcher {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
+                    case Platform.MacOSArm:
                         return 'vscode-server-darwin-web';
                     case Platform.LinuxX64:
+                    case Platform.LinuxArm:
                         return 'vscode-server-linux-x64-web';
                     case Platform.WindowsX64:
+                    case Platform.WindowsArm:
                         return 'vscode-server-win32-x64-web';
                 }
 

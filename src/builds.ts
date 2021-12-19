@@ -73,10 +73,13 @@ class Builds {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
+                    case Platform.MacOSArm:
                         return 'vscode-server-darwin-web.zip';
                     case Platform.LinuxX64:
+                    case Platform.LinuxArm:
                         return 'vscode-server-linux-x64-web.tar.gz';
                     case Platform.WindowsX64:
+                    case Platform.WindowsArm:
                         return 'vscode-server-win32-x64-web.zip';
                 }
 
