@@ -8,7 +8,7 @@ import { join } from "path";
 import open from "open";
 import kill from "tree-kill";
 import { IBuild } from "./builds";
-import { BUILD_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
+import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
 import { rmSync } from "fs";
 
 export interface IInstance {
@@ -20,8 +20,9 @@ class Launcher {
     private static readonly WEB_AVAILABLE_REGEX = new RegExp('Web UI available at (http://localhost:8000/\\?tkn=.+)');
 
     static {
-        rmSync(USER_DATA_FOLDER, { recursive: true });
-        rmSync(EXTENSIONS_FOLDER, { recursive: true });
+        try {
+            rmSync(DATA_FOLDER, { recursive: true });
+        } catch (error) { }
     }
 
     async launch(build: IBuild): Promise<IInstance> {
