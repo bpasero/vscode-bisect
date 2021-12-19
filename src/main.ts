@@ -4,12 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { builds, Runtime } from "./builds";
+import { unzip } from "./files";
 
 async function main(): Promise<void> {
 
     // Download build
     const releasedBuilds = await builds.fetchBuilds(Runtime.Web);
-    await builds.fetchBuild(releasedBuilds[0]);
+    const buildPath = await builds.fetchBuild(releasedBuilds[0]);
+
+    // Unzip build
+    await unzip(buildPath);
 }
 
 main();

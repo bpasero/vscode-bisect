@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { join } from "path";
-import { promises } from "fs";
 import { BUILD_FOLDER } from "./constants";
 import { fileGet, jsonGet } from "./fetch";
 import { exists } from "./files";

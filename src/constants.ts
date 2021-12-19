@@ -5,4 +5,4 @@
 
 import { dirname, join } from "path";
 
-export const BUILD_FOLDER = join(dirname(__dirname), '.build');
+export const BUILD_FOLDER = join(dirname(__dirname), '.builds');
