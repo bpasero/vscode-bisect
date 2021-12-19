@@ -11,7 +11,8 @@ import { launcher } from "./launcher";
 
 enum BisectResponse {
     Good = 1,
-    Bad
+    Bad,
+    Quit
 }
 
 interface IBisectState {
@@ -38,14 +39,18 @@ class Bisecter {
         let goodBuild: IBuild | undefined = undefined;
         let badBuild: IBuild | undefined = undefined;
         let build: IBuild;
+        let quit = false;
 
         // Go over next builds for as long as we are not done...
         while (build = buildsRange[state.currentIndex]) {
             const response = await this.tryBuild(build);
             if (response === BisectResponse.Bad) {
                 badBuild = build;
-            } else {
+            } else if (response === BisectResponse.Good) {
                 goodBuild = build;
+            } else {
+                quit = true;
+                break;
             }
 
             const finished = this.nextState(state, response);
@@ -54,12 +59,14 @@ class Bisecter {
             }
         }
 
-        if (goodBuild && badBuild) {
-            console.log(`${chalk.green(badBuild.commit)} is the first bad commit: Diff: https://github.com/microsoft/vscode/compare/${goodBuild.commit}...${badBuild.commit}`);
-        } else if (badBuild) {
-            console.log(chalk.red('All builds are bad!'));
-        } else {
-            console.log(chalk.green('All builds are good!'));
+        if (!quit) {
+            if (goodBuild && badBuild) {
+                console.log(`${chalk.green(badBuild.commit)} is the first bad commit: Diff: https://github.com/microsoft/vscode/compare/${goodBuild.commit}...${badBuild.commit}`);
+            } else if (badBuild) {
+                console.log(chalk.red('All builds are bad!'));
+            } else {
+                console.log(chalk.green('All builds are good!'));
+            }
         }
     }
 
@@ -92,13 +99,13 @@ class Bisecter {
                 choices: [
                     { title: 'Good', value: 'good' },
                     { title: 'Bad', value: 'bad' }
-                ],
+                ]
             }
         ]);
 
         await instance.stop();
 
-        return response.status === 'good' ? BisectResponse.Good : BisectResponse.Bad;
+        return response.status === 'good' ? BisectResponse.Good : response.status === 'bad' ? BisectResponse.Bad : BisectResponse.Quit;
     }
 
     private async fetchBuilds(runtime: Runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<IBuild[]> {
