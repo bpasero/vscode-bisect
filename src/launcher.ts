@@ -25,7 +25,7 @@ class Launcher {
         try {
             rmSync(DATA_FOLDER, { recursive: true });
         } catch (error) { }
-        mkdirSync(DATA_FOLDER);
+        mkdirSync(DATA_FOLDER, { recursive: true });
     }
 
     async launch(build: IBuild): Promise<IInstance> {

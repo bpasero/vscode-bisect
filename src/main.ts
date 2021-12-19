@@ -10,7 +10,7 @@ import { launcher } from "./launcher";
 async function main(): Promise<void> {
 
     // Pick a build
-    const releasedBuilds = await builds.fetchBuilds(Runtime.Desktop);
+    const releasedBuilds = await builds.fetchBuilds(Runtime.Web);
     const build = releasedBuilds[0];
 
     // Install build

@@ -3,9 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { dirname, join } from "path";
+import { tmpdir } from "os";
+import { join } from "path";
 
-const ROOT = join(dirname(__dirname));
+const ROOT = join(tmpdir(), 'vscode-bisect');
 
 export const BUILD_FOLDER = join(ROOT, '.builds');
 
