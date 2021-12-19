@@ -14,6 +14,11 @@ enum BisectResponse {
     Bad
 }
 
+interface IBisectState {
+    currentChunk: number;
+    currentIndex: number;
+}
+
 class Bisecter {
 
     async start(runtime: Runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<void> {
@@ -23,32 +28,19 @@ class Bisecter {
 
         console.log(`Bisecting ${chalk.green(buildsRange.length)} builds (roughly ${chalk.green(Math.round(Math.log2(buildsRange.length)))} steps)`);
 
-        // Start bisecting
+        // Start bisecting from the middle of the builds range
+        const initialState = Math.round(buildsRange.length / 2);
+        const state: IBisectState = {
+            currentChunk: initialState,
+            currentIndex: initialState
+        }
 
         let goodBuild: IBuild | undefined = undefined;
         let badBuild: IBuild | undefined = undefined;
-
-        let currentChunk = Math.round(buildsRange.length / 2);
-        let currentIndex = currentChunk;
-
-        function pickNext(isGood: boolean): boolean {
-
-            // Binary search is done
-            if (currentChunk === 1) {
-                return true;
-            }
-
-            // Binary search is not done
-            else {
-                currentChunk = Math.round(currentChunk / 2);
-                currentIndex = isGood ? currentIndex - currentChunk /* try newer */ : currentIndex + currentChunk /* try older */;
-
-                return false;
-            }
-        }
-
         let build: IBuild;
-        while (build = buildsRange[currentIndex]) {
+
+        // Go over next builds for as long as we are not done...
+        while (build = buildsRange[state.currentIndex]) {
             const response = await this.tryBuild(build);
             if (response === BisectResponse.Bad) {
                 badBuild = build;
@@ -56,7 +48,7 @@ class Bisecter {
                 goodBuild = build;
             }
 
-            const finished = pickNext(response === BisectResponse.Good);
+            const finished = this.nextState(state, response);
             if (finished) {
                 break;
             }
@@ -68,6 +60,22 @@ class Bisecter {
             console.log(chalk.red('All builds are bad!'));
         } else {
             console.log(chalk.green('All builds are good!'));
+        }
+    }
+
+    private nextState(state: IBisectState, response: BisectResponse): boolean {
+
+        // Binary search is done
+        if (state.currentChunk === 1) {
+            return true;
+        }
+
+        // Binary search is not done
+        else {
+            state.currentChunk = Math.round(state.currentChunk / 2);
+            state.currentIndex = response === BisectResponse.Good ? state.currentIndex - state.currentChunk /* try newer */ : state.currentIndex + state.currentChunk /* try older */;
+
+            return false;
         }
     }
 
