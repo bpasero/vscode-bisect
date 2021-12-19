@@ -1,0 +1,16 @@
+{
+    "name": "vscode-bisect",
+    "description": "Bisect VS Code to find issues",
+    "authors": "bpasero",
+    "version": "0.0.1",
+    "main": "src/main",
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "4.5.4",
+        "@types/node": "^12.11.7"
+    },
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    }
+}
