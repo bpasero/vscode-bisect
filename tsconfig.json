@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2016",
-    "module": "commonjs",
+    "target": "es2020",
+		"module": "commonjs",
+		"lib": ["es2020"],
     "rootDir": "./src",
     "outDir": "./out",
     "esModuleInterop": true,
@@ -10,8 +11,6 @@
     "skipLibCheck": true,
     "sourceMap": true
   },
-  "exclude": [
-    ".builds", 
-    ".data"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

@@ -1,22 +1,28 @@
 {
     "name": "vscode-bisect",
+    "version": "0.0.1",
     "description": "Bisect released VS Code Insider builds to find issues similar to what git bisect supports.",
     "repository": {
         "type": "git",
         "url": "https://github.com/bpasero/vscode-bisect"
     },
+    "homepage": "https://github.com/bpasero/vscode-bisect",
     "keywords": [
         "vscode"
     ],
     "license": "MIT",
     "authors": "bpasero",
-    "version": "0.0.1",
     "main": "out/index",
     "bin": {
         "vscode-bisect": "bin/vscode-bisect"
     },
+    "scripts": {
+        "compile": "tsc -p ./",
+        "build": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
     "engines": {
-        "node": "16.x"
+        "node": ">= 16"
     },
     "dependencies": {
         "chalk": "4.x",
@@ -29,9 +35,5 @@
         "@types/node": "16.x",
         "@types/prompts": "^2.0.14",
         "typescript": "4.5.4"
-    },
-    "scripts": {
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./"
     }
 }
