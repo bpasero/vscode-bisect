@@ -45,6 +45,10 @@ class Launcher {
             }
         });
 
+        cp.stderr.on('data', data => {
+            console.error(`Error launching server: ${data.toString()}`);
+        });
+
         return {
             stop: () => new Promise<void>((resolve, reject) => {
                 kill(cp.pid!, error => error ? reject(error) : resolve())
@@ -54,6 +58,10 @@ class Launcher {
 
     private launchElectron(build: IBuild): IInstance {
         const cp = this.spawnBuild(build);
+
+        cp.stderr.on('data', data => {
+            console.error(`Error launching electron: ${data.toString()}`);
+        });
 
         return {
             stop: () => new Promise<void>(resolve => {
