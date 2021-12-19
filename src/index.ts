@@ -16,12 +16,12 @@ module.exports = function (argv: string[]): void {
     }
 
     program
-        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a browser (default) or electron version').choices(['web', 'desktop']))
+        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a web (default) or desktop version').choices(['web', 'desktop']))
         .option('-g, --good <commit>', 'commit hash of a released insiders that does not reproduce the issue')
         .option('-b, --bad <commit>', 'commit hash of a released insiders that reproduces the issue');
 
     program.addHelpText('after', `
-    Note: if no commit is specified, vscode-bisect will automatically bisect the last 200 released insider builds.
+Note: if no commit is specified, vscode-bisect will automatically bisect the last 200 released insider builds.
     `);
 
     const opts: Opts = program.parse(argv).opts();
