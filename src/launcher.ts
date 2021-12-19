@@ -7,7 +7,7 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { join } from "path";
 import open from "open";
 import kill from "tree-kill";
-import { IBuild } from "./builds";
+import { builds, IBuild } from "./builds";
 import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
 import { mkdirSync, rmSync } from "fs";
 
@@ -29,6 +29,11 @@ class Launcher {
     }
 
     async launch(build: IBuild): Promise<IInstance> {
+
+        // Install
+        await builds.installBuild(build);
+
+        // Launch according to runtime
         switch (build.runtime) {
             case Runtime.Web:
                 return this.launchBrowser(build);
@@ -49,7 +54,7 @@ class Launcher {
         });
 
         cp.stderr.on('data', data => {
-            console.error(`[Server]: ${data.toString()}`);
+            // console.error(`[Server]: ${data.toString()}`);
         });
 
         return {
@@ -63,7 +68,7 @@ class Launcher {
         const cp = this.spawnBuild(build);
 
         cp.stderr.on('data', data => {
-            console.error(`[Electron]: ${data.toString()}`);
+            // console.error(`[Electron]: ${data.toString()}`);
         });
 
         return {
