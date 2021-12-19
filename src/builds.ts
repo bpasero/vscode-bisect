@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { join } from "path";
-import { BUILD_FOLDER } from "./constants";
+import { BUILD_FOLDER, Platform, platform } from "./constants";
 import { fileGet, jsonGet } from "./fetch";
-import { exists } from "./files";
+import { exists, unzip } from "./files";
 
 export enum Runtime {
     Web = 1,
@@ -14,20 +14,17 @@ export enum Runtime {
 }
 
 export interface IBuild {
-    name: string;
     runtime: Runtime;
     commit: string;
 }
 
-enum Platform {
-    MacOSX64 = 1,
-    LinuxX64 = 2,
-    WindowsX64 = 3
-}
-
-const platform: Platform = process.platform === 'win32' ? Platform.WindowsX64 : process.platform === 'darwin' ? Platform.MacOSX64 : Platform.LinuxX64;
-
 class BuildsServer {
+
+    async fetchBuilds(runtime: Runtime): Promise<IBuild[]> {
+        const commits = await jsonGet<Array<string>>(this.getBuildsUrl(runtime));
+
+        return commits.map(commit => ({ commit, runtime }));
+    }
 
     private getBuildsUrl(runtime: Runtime): string {
         switch (runtime) {
@@ -43,6 +40,15 @@ class BuildsServer {
 
             case Runtime.Desktop:
                 throw new Error('Not yet supported');
+        }
+    }
+
+    async installBuild({ runtime, commit }: IBuild): Promise<void> {
+        const path = join(BUILD_FOLDER, commit, this.getBuildName(runtime));
+
+        if (!await exists(path)) {
+            await fileGet(this.getBuildUrl({ runtime, commit }), path);
+            await unzip(path);
         }
     }
 
@@ -63,40 +69,21 @@ class BuildsServer {
         }
     }
 
-    private getBuildUrl({ runtime, commit, name }: IBuild): string {
+    private getBuildUrl({ runtime, commit }: IBuild): string {
         switch (runtime) {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${name}`;
+                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
                     case Platform.LinuxX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${name}`;
+                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
                     case Platform.WindowsX64:
-                        return `https://az764295.vo.msecnd.net/insider/${commit}/${name}`;
+                        return `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
                 }
 
             case Runtime.Desktop:
                 throw new Error('Not yet supported');
         }
-    }
-
-    async fetchBuilds(runtime: Runtime): Promise<IBuild[]> {
-        const commits = await jsonGet<Array<string>>(this.getBuildsUrl(runtime));
-        if (!commits) {
-            throw new Error(`Failed to fetch builds for runtime ${runtime}`);
-        }
-
-        return commits.map(commit => ({ commit, runtime, name: this.getBuildName(runtime) }));
-    }
-
-    async fetchBuild(build: IBuild): Promise<string> {
-        const path = join(BUILD_FOLDER, build.commit, build.name);
-
-        if (!await exists(path)) {
-            await fileGet(this.getBuildUrl(build), path);
-        }
-
-        return path;
     }
 }
 

@@ -7,13 +7,9 @@ import { get } from 'https';
 import { createWriteStream, promises } from 'fs';
 import { dirname } from 'path';
 
-export function jsonGet<T>(url: string): Promise<T | undefined> {
+export function jsonGet<T>(url: string): Promise<T> {
     return new Promise((resolve, reject) => {
         get(url, res => {
-            if (res.statusCode === 204) {
-                return resolve(undefined); // no update available
-            }
-
             if (res.statusCode !== 200) {
                 reject(`Failed to get response from update server (code: ${res.statusCode}, message: ${res.statusMessage})`);
                 return;

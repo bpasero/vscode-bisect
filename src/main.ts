@@ -4,16 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { builds, Runtime } from "./builds";
-import { unzip } from "./files";
+import { launcher } from "./launcher";
 
 async function main(): Promise<void> {
 
-    // Download build
+    // Pick a build
     const releasedBuilds = await builds.fetchBuilds(Runtime.Web);
-    const buildPath = await builds.fetchBuild(releasedBuilds[0]);
+    const build = releasedBuilds[0];
 
-    // Unzip build
-    await unzip(buildPath);
+    // Install build
+    await builds.installBuild(build);
+
+    // Launch build
+    const instance = await launcher.launch(build);
+
+    setTimeout(() => {
+        instance.stop();
+    }, 10000);
 }
 
 main();

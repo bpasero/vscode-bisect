@@ -7,10 +7,13 @@
     "engines": {
         "node": "16.x"
     },
-    "dependencies": {},
+    "dependencies": {
+        "open": "^8.4.0",
+        "tree-kill": "^1.2.2"
+    },
     "devDependencies": {
-        "typescript": "4.5.4",
-        "@types/node": "16.x"
+        "@types/node": "16.x",
+        "typescript": "4.5.4"
     },
     "scripts": {
         "compile": "tsc -p ./",
