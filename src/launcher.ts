@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ChildProcess, ChildProcessWithoutNullStreams, exec, execFile, spawn } from "child_process";
-import { IBuild, Runtime } from "./builds";
-import open from "open";
-import { BUILD_FOLDER, Platform, platform } from "./constants";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { join } from "path";
-import kill from 'tree-kill';
+import open from "open";
+import kill from "tree-kill";
+import { IBuild, Runtime } from "./builds";
+import { BUILD_FOLDER, EXTENSIONS_FOLDER, Platform, platform, USER_DATA_FOLDER } from "./constants";
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -16,7 +16,7 @@ export interface IInstance {
 
 class Launcher {
 
-    private static readonly WEB_AVAILABLE_REGEX = new RegExp(`Web UI available at (http://localhost:8000/\\?tkn=.+)`);
+    private static readonly WEB_AVAILABLE_REGEX = new RegExp('Web UI available at (http://localhost:8000/\\?tkn=.+)');
 
     async launch(build: IBuild): Promise<IInstance> {
         switch (build.runtime) {
@@ -51,11 +51,17 @@ class Launcher {
 
     private spawnBuild(build: IBuild): ChildProcessWithoutNullStreams {
         const executable = this.getBuildExecutable(build);
+        const args = [
+            '--user-data-dir',
+            USER_DATA_FOLDER,
+            '--extensions-dir',
+            EXTENSIONS_FOLDER
+        ];
 
         switch (platform) {
             case Platform.MacOSX64:
             case Platform.LinuxX64:
-                return spawn('bash', [executable]);
+                return spawn('bash', [executable, ...args]);
             case Platform.WindowsX64:
                 throw new Error('Unsupported');
         }

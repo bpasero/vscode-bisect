@@ -5,7 +5,13 @@
 
 import { dirname, join } from "path";
 
-export const BUILD_FOLDER = join(dirname(__dirname), '.builds');
+const ROOT = join(dirname(__dirname));
+
+export const BUILD_FOLDER = join(ROOT, '.builds');
+
+const DATA_FOLDER = join(ROOT, '.data');
+export const USER_DATA_FOLDER = join(DATA_FOLDER, 'data');
+export const EXTENSIONS_FOLDER = join(DATA_FOLDER, 'extensions');
 
 export enum Platform {
     MacOSX64 = 1,
