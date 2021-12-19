@@ -3,6 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-export const RELEASED_INSIDER_BUILDS_URL = {
-    darwin: 'https://update.code.visualstudio.com/api/commits/insider/server-darwin-web'
-}
+import { dirname, join } from "path";
+
+export const BUILD_FOLDER = join(dirname(__dirname), '.build');

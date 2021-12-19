@@ -4,10 +4,13 @@
     "authors": "bpasero",
     "version": "0.0.1",
     "main": "src/main",
+    "engines": {
+        "node": "16.x"
+    },
     "dependencies": {},
     "devDependencies": {
         "typescript": "4.5.4",
-        "@types/node": "^12.11.7"
+        "@types/node": "16.x"
     },
     "scripts": {
         "compile": "tsc -p ./",

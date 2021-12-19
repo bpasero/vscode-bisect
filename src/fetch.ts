@@ -3,11 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import https from 'https';
+import { get } from 'https';
+import { createWriteStream, promises } from 'fs';
+import { dirname } from 'path';
 
 export function jsonGet<T>(url: string): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
-        https.get(url, res => {
+        get(url, res => {
             if (res.statusCode === 204) {
                 return resolve(undefined); // no update available
             }
@@ -22,6 +24,24 @@ export function jsonGet<T>(url: string): Promise<T | undefined> {
             res.on('data', chunk => data += chunk);
             res.on('end', () => resolve(JSON.parse(data)));
             res.on('error', err => reject(err));
+        });
+    });
+}
+
+export async function fileGet(url: string, path: string): Promise<void> {
+
+    // Ensure parent folder exists
+    await promises.mkdir(dirname(path), { recursive: true });
+
+    // Download
+    return new Promise((resolve, reject) => {
+        get(url, res => {
+            const outStream = createWriteStream(path);
+            outStream.on('close', () => resolve());
+            outStream.on('error', reject);
+
+            res.on('error', reject);
+            res.pipe(outStream);
         });
     });
 }

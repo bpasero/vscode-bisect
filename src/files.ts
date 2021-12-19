@@ -3,13 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { builds, Runtime } from "./builds";
+import { promises } from "fs";
 
-async function main(): Promise<void> {
+export async function exists(path: string): Promise<boolean> {
+    try {
+        await promises.stat(path);
 
-    // Download build
-    const releasedBuilds = await builds.fetchBuilds(Runtime.Web);
-    await builds.fetchBuild(releasedBuilds[0]);
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
-
-main();
