@@ -6,6 +6,7 @@
 import { spawnSync } from "child_process";
 import { promises } from "fs";
 import { dirname } from "path";
+import { Platform, platform } from "./constants";
 
 export async function exists(path: string): Promise<boolean> {
     try {
@@ -22,7 +23,9 @@ export async function unzip(source: string): Promise<void> {
 
     // *.zip: macOS, Windows
     if (source.endsWith('.zip')) {
-        if (process.platform === 'win32') {
+
+        // Windows
+        if (platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
             spawnSync('powershell.exe', [
                 '-NoProfile',
                 '-ExecutionPolicy', 'Bypass',
@@ -31,7 +34,10 @@ export async function unzip(source: string): Promise<void> {
                 '-Command',
                 `Microsoft.PowerShell.Archive\\Expand-Archive -Path "${source}" -DestinationPath "${destination}"`
             ]);
-        } else {
+        }
+
+        // macOS
+        else {
             spawnSync('unzip', [source, '-d', destination]);
         }
     }

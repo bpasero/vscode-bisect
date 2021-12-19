@@ -56,12 +56,16 @@ class Builds {
 
     async installBuild({ runtime, commit }: IBuild): Promise<void> {
         const path = join(BUILD_FOLDER, commit, this.getBuildName(runtime));
-
-        if (!await exists(path)) {
-            const url = `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
-            await fileGet(url, path);
-            await unzip(path);
+        if (await exists(path)) {
+            return; // assume the build is cached
         }
+
+        // Download
+        const url = `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+        await fileGet(url, path);
+
+        // Unzip
+        await unzip(path);
     }
 
     private getBuildName(runtime: Runtime): string {

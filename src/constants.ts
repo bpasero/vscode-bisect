@@ -15,11 +15,11 @@ export const EXTENSIONS_FOLDER = join(DATA_FOLDER, 'extensions');
 
 export enum Platform {
     MacOSX64 = 1,
-    MacOSArm = 2,
-    LinuxX64 = 3,
-    LinuxArm = 4,
-    WindowsX64 = 5,
-    WindowsArm = 6
+    MacOSArm,
+    LinuxX64,
+    LinuxArm,
+    WindowsX64,
+    WindowsArm
 }
 
 export const platform = (() => {
