@@ -14,49 +14,60 @@ export interface IBuild {
     commit: string;
 }
 
+interface IBuildMetadata {
+    url: string;
+    productVersion: string;
+}
+
 class Builds {
 
     async fetchBuilds(runtime: Runtime): Promise<IBuild[]> {
-        const commits = await jsonGet<Array<string>>(this.getBuildsUrl(runtime));
+        const commits = await jsonGet<Array<string>>(`https://update.code.visualstudio.com/api/commits/insider/${this.getBuildApiName(runtime)}`);
 
         return commits.map(commit => ({ commit, runtime }));
     }
 
-    private getBuildsUrl(runtime: Runtime): string {
+    fetchBuildMeta({ runtime, commit }: IBuild): Promise<IBuildMetadata> {
+        return jsonGet<IBuildMetadata>(`https://update.code.visualstudio.com/api/versions/commit:${commit}/${this.getBuildApiName(runtime)}/insider`);
+    }
+
+    private getBuildApiName(runtime: Runtime): string {
         switch (runtime) {
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/server-darwin-web';
+                        return 'server-darwin-web';
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/server-linux-x64-web';
+                        return 'server-linux-x64-web';
                     case Platform.WindowsX64:
                     case Platform.WindowsArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/server-win32-x64-web';
+                        return 'server-win32-x64-web';
                 }
 
             case Runtime.Desktop:
                 switch (platform) {
                     case Platform.MacOSX64:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/darwin';
+                        return 'darwin';
                     case Platform.MacOSArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/darwin-arm64';
+                        return 'darwin-arm64';
                     case Platform.LinuxX64:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/linux-x64';
+                        return 'linux-x64';
                     case Platform.LinuxArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/linux-arm64';
+                        return 'linux-arm64';
                     case Platform.WindowsX64:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/win32-x64';
+                        return 'win32-x64';
                     case Platform.WindowsArm:
-                        return 'https://update.code.visualstudio.com/api/commits/insider/win32-arm64';
+                        return 'win32-arm64';
                 }
         }
     }
 
     async installBuild({ runtime, commit }: IBuild): Promise<void> {
-        const path = join(BUILD_FOLDER, commit, this.getBuildName(runtime));
+        const buildName = await this.getBuildName({ runtime, commit });
+
+        const path = join(BUILD_FOLDER, commit, buildName);
 
         if (LOGGER.verbose) {
             console.log(`Using ${chalk.green(path)} for the next build to try`);
@@ -67,7 +78,7 @@ class Builds {
         }
 
         // Download
-        const url = `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+        const url = `https://az764295.vo.msecnd.net/insider/${commit}/${buildName}`;
         if (LOGGER.verbose) {
             console.log(`Downloading build from ${chalk.green(url)}...`);
         }
@@ -80,8 +91,11 @@ class Builds {
         await unzip(path);
     }
 
-    private getBuildName(runtime: Runtime): string {
+    private async getBuildName({ runtime, commit }: IBuild): Promise<string> {
         switch (runtime) {
+
+            // We currently do not have ARM enabled servers
+            // so we fallback to x64 until we ship ARM.
             case Runtime.Web:
                 switch (platform) {
                     case Platform.MacOSX64:
@@ -95,6 +109,10 @@ class Builds {
                         return 'vscode-server-win32-x64-web.zip';
                 }
 
+            // Every platform has its own name scheme, hilarious right?
+            // - macOS: just the name, nice! (e.g. VSCode-darwin.zip)
+            // - Linux: includes some unix timestamp (e.g. code-insider-x64-1639979337.tar.gz)
+            // - Windows: includes the version (e.g. VSCodeSetup-x64-1.64.0-insider.exe)
             case Runtime.Desktop:
                 switch (platform) {
                     case Platform.MacOSX64:
@@ -103,9 +121,13 @@ class Builds {
                         return 'VSCode-darwin-arm64.zip';
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
+                        return (await this.fetchBuildMeta({ runtime, commit })).url.split('/').pop()!; // e.g. https://az764295.vo.msecnd.net/insider/807bf598bea406dcb272a9fced54697986e87768/code-insider-x64-1639979337.tar.gz
                     case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        throw new Error('Not yet implemented');
+                    case Platform.WindowsArm: {
+                        const buildMeta = await this.fetchBuildMeta({ runtime, commit });
+
+                        return platform === Platform.WindowsX64 ? `VSCode-win32-x64-${buildMeta.productVersion}.zip` : `VSCode-win32-arm64-${buildMeta.productVersion}.zip`;
+                    }
                 }
         }
     }

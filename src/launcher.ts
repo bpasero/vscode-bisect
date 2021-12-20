@@ -86,7 +86,7 @@ class Launcher {
     }
 
     private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
-        const executable = this.getBuildExecutable(build);
+        const executable = await this.getBuildExecutable(build);
 
         const executableExists = await exists(executable);
         if (!executableExists) {
@@ -124,20 +124,13 @@ class Launcher {
 
 
             case Runtime.Desktop:
-                switch (platform) {
-                    case Platform.MacOSX64:
-                    case Platform.MacOSArm:
-                        return spawn(executable, args);
-                    case Platform.LinuxX64:
-                    case Platform.LinuxArm:
-                    case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        throw new Error('Not yet implemented');
-                }
+                return spawn(executable, args);
         }
     }
 
-    private getBuildExecutable({ runtime, commit }: IBuild): string {
+    private async getBuildExecutable({ runtime, commit }: IBuild): Promise<string> {
+        const buildName = await this.getBuildName({ runtime, commit });
+
         switch (runtime) {
             case Runtime.Web:
                 switch (platform) {
@@ -145,26 +138,27 @@ class Launcher {
                     case Platform.MacOSArm:
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
-                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.sh')
+                        return join(BUILD_FOLDER, commit, buildName, 'server.sh')
                     case Platform.WindowsX64:
-                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'server.cmd')
+                        return join(BUILD_FOLDER, commit, buildName, 'server.cmd')
                 }
 
             case Runtime.Desktop:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
-                        return join(BUILD_FOLDER, commit, this.getBuildName(runtime), 'Contents', 'MacOS', 'Electron')
+                        return join(BUILD_FOLDER, commit, buildName, 'Contents', 'MacOS', 'Electron')
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
+                        return join(BUILD_FOLDER, commit, buildName, 'code-insiders')
                     case Platform.WindowsX64:
                     case Platform.WindowsArm:
-                        throw new Error('Not yet implemented');
+                        return join(BUILD_FOLDER, commit, buildName, 'Code - Insiders.exe')
                 }
         }
     }
 
-    private getBuildName(runtime: Runtime): string {
+    private async getBuildName({ runtime, commit }: IBuild): Promise<string> {
         switch (runtime) {
             case Runtime.Web:
                 switch (platform) {
@@ -182,14 +176,18 @@ class Launcher {
             case Runtime.Desktop:
                 switch (platform) {
                     case Platform.MacOSX64:
-                        return 'Visual Studio Code - Insiders.app';
                     case Platform.MacOSArm:
                         return 'Visual Studio Code - Insiders.app';
                     case Platform.LinuxX64:
+                        return 'VSCode-linux-x64';
                     case Platform.LinuxArm:
+                        return 'VSCode-linux-arm64';
                     case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        throw new Error('Not yet implemented');
+                    case Platform.WindowsArm: {
+                        const buildMeta = await builds.fetchBuildMeta({ runtime, commit });
+
+                        return platform === Platform.WindowsX64 ? `VSCode-win32-x64-${buildMeta.productVersion}` : `VSCode-win32-arm64-${buildMeta.productVersion}`;
+                    }
                 }
         }
     }
