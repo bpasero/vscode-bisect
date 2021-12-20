@@ -117,9 +117,7 @@ class Builds {
 
         // Download
         const url = `https://az764295.vo.msecnd.net/insider/${commit}/${buildName}`;
-        if (LOGGER.verbose) {
-            console.log(`Downloading build from ${chalk.green(url)}...`);
-        }
+        console.log(`Downloading build from ${chalk.green(url)}...`);
         await fileGet(url, path);
 
         // Unzip
@@ -131,9 +129,7 @@ class Builds {
             // zip contains a single top level folder to use
             destination = dirname(path);
         }
-        if (LOGGER.verbose) {
-            console.log(`Unzipping build to ${chalk.green(destination)}...`);
-        }
+        console.log(`Unzipping build to ${chalk.green(destination)}...`);
         await unzip(path, destination);
     }
 

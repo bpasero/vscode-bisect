@@ -33,11 +33,10 @@ class Launcher {
     async launch(build: IBuild): Promise<IInstance> {
 
         // Install
-        console.log(`Downloading: ${chalk.green(build.commit)}...`);
         await builds.installBuild(build);
 
         // Launch according to runtime
-        console.log(`Launching: ${chalk.green(build.commit)}...`);
+        console.log(`Launching build ${chalk.green(build.commit)}...`);
         switch (build.runtime) {
             case Runtime.Web:
                 return this.launchBrowser(build);
