@@ -18,8 +18,7 @@ export async function exists(path: string): Promise<boolean> {
     }
 }
 
-export async function unzip(source: string): Promise<void> {
-    const destination = dirname(source);
+export async function unzip(source: string, destination: string): Promise<void> {
 
     // *.zip: macOS, Windows
     if (source.endsWith('.zip')) {

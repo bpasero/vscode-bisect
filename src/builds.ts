@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import chalk from "chalk";
-import { join } from "path";
+import { dirname, join } from "path";
 import { BUILD_FOLDER, LOGGER, Platform, platform, Runtime } from "./constants";
 import { fileGet, jsonGet } from "./fetch";
 import { exists, unzip } from "./files";
@@ -85,10 +85,18 @@ class Builds {
         await fileGet(url, path);
 
         // Unzip
-        if (LOGGER.verbose) {
-            console.log(`Unzipping build to ${chalk.green(path)}...`);
+        let destination: string;
+        if (runtime === Runtime.Desktop && platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
+            // zip does not contain a single top level folder to use...
+            destination = path.substring(0, path.lastIndexOf('.zip'));
+        } else {
+            // zip contains a single top level folder to use
+            destination = dirname(path);
         }
-        await unzip(path);
+        if (LOGGER.verbose) {
+            console.log(`Unzipping build to ${chalk.green(destination)}...`);
+        }
+        await unzip(path, destination);
     }
 
     private async getBuildName({ runtime, commit }: IBuild): Promise<string> {
