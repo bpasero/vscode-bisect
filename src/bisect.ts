@@ -8,6 +8,7 @@ import chalk from "chalk";
 import { builds, IBuild } from "./builds";
 import { Runtime } from "./constants";
 import { launcher } from "./launcher";
+import open from "open";
 
 enum BisectResponse {
     Good = 1,
@@ -60,13 +61,31 @@ class Bisecter {
         }
 
         if (!quit) {
-            if (goodBuild && badBuild) {
-                console.log(`${chalk.green(badBuild.commit)} is the first bad commit: Diff: https://github.com/microsoft/vscode/compare/${goodBuild.commit}...${badBuild.commit}`);
-            } else if (badBuild) {
-                console.log(chalk.red('All builds are bad!'));
-            } else {
-                console.log(chalk.green('All builds are good!'));
+            return this.finishBisect(badBuild, goodBuild);
+        }
+    }
+
+    private async finishBisect(badBuild: IBuild | undefined, goodBuild: IBuild | undefined): Promise<void> {
+        if (goodBuild && badBuild) {
+            console.log(`${chalk.green(badBuild.commit)} is the first bad commit after ${chalk.green(goodBuild.commit)}.`);
+
+            const response = await prompts([
+                {
+                    type: "confirm",
+                    name: 'open',
+                    initial: true,
+                    message: 'Would you like to open GitHub for the list of changes?',
+
+                }
+            ]);
+
+            if (response.open) {
+                open(`https://github.com/microsoft/vscode/compare/${goodBuild.commit}...${badBuild.commit}`);
             }
+        } else if (badBuild) {
+            console.log(chalk.red('All builds are bad!'));
+        } else {
+            console.log(chalk.green('All builds are good!'));
         }
     }
 
