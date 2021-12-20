@@ -82,6 +82,13 @@ class Bisecter {
             if (response.open) {
                 open(`https://github.com/microsoft/vscode/compare/${goodBuild.commit}...${badBuild.commit}`);
             }
+
+            console.log(`
+Run the following commands to continue bisecting via git in a folder where VS Code is checked out to:
+
+${chalk.green(`git bisect start && git bisect bad ${badBuild.commit} && git bisect good ${goodBuild.commit}`)}
+
+`);
         } else if (badBuild) {
             console.log(chalk.red('All builds are bad!'));
         } else {
