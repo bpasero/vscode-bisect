@@ -11,6 +11,7 @@ import { builds, IBuild } from "./builds";
 import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, LOGGER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
 import { mkdirSync, rmSync } from "fs";
 import { exists } from "./files";
+import chalk from "chalk";
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -86,12 +87,16 @@ class Launcher {
 
     private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
         const executable = this.getBuildExecutable(build);
-        
+
         const executableExists = await exists(executable);
         if (!executableExists) {
             throw new Error(`Unable to find executable ${executable} on disk. Is the archive corrupt?`);
         }
-        
+
+        if (LOGGER.verbose) {
+            console.log(`Starting build via ${chalk.green(executable)}...`);
+        }
+
         const args = [
             '--extensions-dir',
             EXTENSIONS_FOLDER

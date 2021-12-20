@@ -68,9 +68,15 @@ class Builds {
 
         // Download
         const url = `https://az764295.vo.msecnd.net/insider/${commit}/${this.getBuildName(runtime)}`;
+        if (LOGGER.verbose) {
+            console.log(`Downloading build from ${chalk.green(url)}...`);
+        }
         await fileGet(url, path);
 
         // Unzip
+        if (LOGGER.verbose) {
+            console.log(`Unzipping build to ${chalk.green(path)}...`);
+        }
         await unzip(path);
     }
 

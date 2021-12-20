@@ -27,6 +27,8 @@ module.exports = async function (argv: string[]): Promise<void> {
 
     program.addHelpText('after', `
 Note: if no commit is specified, vscode-bisect will automatically bisect the last 200 released insider builds.
+
+Builds are stored and cached on disk in ${BUILD_FOLDER}
     `);
 
     const opts: Opts = program.parse(argv).opts();
