@@ -227,6 +227,7 @@ class Builds {
                     case Platform.LinuxArm:
                         return join(buildPath, buildName, 'server.sh')
                     case Platform.WindowsX64:
+                    case Platform.WindowsArm:
                         return join(buildPath, buildName, 'server.cmd')
                 }
 
