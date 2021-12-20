@@ -43,3 +43,7 @@ export enum Runtime {
     Web = 1,
     Desktop
 }
+
+export const LOGGER = {
+    verbose: false
+}

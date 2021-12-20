@@ -8,8 +8,9 @@ import { join } from "path";
 import open from "open";
 import kill from "tree-kill";
 import { builds, IBuild } from "./builds";
-import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
+import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, LOGGER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
 import { mkdirSync, rmSync } from "fs";
+import { exists } from "./files";
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -42,8 +43,8 @@ class Launcher {
         }
     }
 
-    private launchBrowser(build: IBuild): IInstance {
-        const cp = this.spawnBuild(build);
+    private async launchBrowser(build: IBuild): Promise<IInstance> {
+        const cp = await this.spawnBuild(build);
 
         cp.stdout.on('data', data => {
             const matches = Launcher.WEB_AVAILABLE_REGEX.exec(data.toString());
@@ -54,7 +55,9 @@ class Launcher {
         });
 
         cp.stderr.on('data', data => {
-            // console.error(`[Server]: ${data.toString()}`);
+            if (LOGGER.verbose) {
+                console.error(`[Server]: ${data.toString()}`);
+            }
         });
 
         return {
@@ -64,11 +67,13 @@ class Launcher {
         }
     }
 
-    private launchElectron(build: IBuild): IInstance {
-        const cp = this.spawnBuild(build);
+    private async launchElectron(build: IBuild): Promise<IInstance> {
+        const cp = await this.spawnBuild(build);
 
         cp.stderr.on('data', data => {
-            // console.error(`[Electron]: ${data.toString()}`);
+            if (LOGGER.verbose) {
+                console.error(`[Electron]: ${data.toString()}`);
+            }
         });
 
         return {
@@ -79,8 +84,14 @@ class Launcher {
         }
     }
 
-    private spawnBuild(build: IBuild): ChildProcessWithoutNullStreams {
+    private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
         const executable = this.getBuildExecutable(build);
+        
+        const executableExists = await exists(executable);
+        if (!executableExists) {
+            throw new Error(`Unable to find executable ${executable} on disk. Is the archive corrupt?`);
+        }
+        
         const args = [
             '--extensions-dir',
             EXTENSIONS_FOLDER

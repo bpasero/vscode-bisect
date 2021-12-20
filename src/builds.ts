@@ -3,8 +3,9 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import chalk from "chalk";
 import { join } from "path";
-import { BUILD_FOLDER, Platform, platform, Runtime } from "./constants";
+import { BUILD_FOLDER, LOGGER, Platform, platform, Runtime } from "./constants";
 import { fileGet, jsonGet } from "./fetch";
 import { exists, unzip } from "./files";
 
@@ -56,6 +57,11 @@ class Builds {
 
     async installBuild({ runtime, commit }: IBuild): Promise<void> {
         const path = join(BUILD_FOLDER, commit, this.getBuildName(runtime));
+
+        if (LOGGER.verbose) {
+            console.log(`Using ${chalk.green(path)} for the next build to try`);
+        }
+
         if (await exists(path)) {
             return; // assume the build is cached
         }

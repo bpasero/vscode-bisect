@@ -87,7 +87,7 @@ class Bisecter {
     }
 
     private async tryBuild(build: IBuild): Promise<BisectResponse> {
-        console.log(`Launching: ${chalk.green(build.commit)} ...`);
+        console.log(`Launching: ${chalk.green(build.commit)}...`);
 
         const instance = await launcher.launch(build);
 
