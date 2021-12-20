@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import prompts from "prompts";
-import chalk from "chalk";
-import { builds, IBuild } from "./builds";
-import { Runtime } from "./constants";
-import { launcher } from "./launcher";
-import open from "open";
+import prompts from 'prompts';
+import chalk from 'chalk';
+import open from 'open';
+import { builds, IBuild } from './builds';
+import { Runtime } from './constants';
+import { launcher } from './launcher';
 
 enum BisectResponse {
     Good = 1,
@@ -26,7 +26,7 @@ class Bisecter {
     async start(runtime: Runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<void> {
 
         // Get builds to bisect
-        const buildsRange = await this.fetchBuilds(runtime, goodCommit, badCommit);
+        const buildsRange = await builds.fetchBuilds(runtime, goodCommit, badCommit);
 
         console.log(`Bisecting ${chalk.green(buildsRange.length)} builds (roughly ${chalk.green(Math.round(Math.log2(buildsRange.length)))} steps)`);
 
@@ -113,8 +113,6 @@ ${chalk.green(`git bisect start && git bisect bad ${badBuild.commit} && git bise
     }
 
     private async tryBuild(build: IBuild): Promise<BisectResponse> {
-        console.log(`Launching: ${chalk.green(build.commit)}...`);
-
         const instance = await launcher.launch(build);
 
         const response = await prompts([
@@ -132,48 +130,6 @@ ${chalk.green(`git bisect start && git bisect bad ${badBuild.commit} && git bise
         await instance.stop();
 
         return response.status === 'good' ? BisectResponse.Good : response.status === 'bad' ? BisectResponse.Bad : BisectResponse.Quit;
-    }
-
-    private async fetchBuilds(runtime: Runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<IBuild[]> {
-        const allBuilds = await builds.fetchBuilds(runtime);
-
-        let goodCommitIndex = allBuilds.length - 1;  // last build (oldest) by default
-        let badCommitIndex = 0;                     // first build (newest) by default
-
-        if (typeof goodCommit === 'string') {
-            const candidateGoodCommitIndex = this.indexOf(goodCommit, allBuilds);
-            if (typeof candidateGoodCommitIndex !== 'number') {
-                throw new Error(`Provided good commit ${goodCommit} is not a released insiders build.`);
-            }
-
-            goodCommitIndex = candidateGoodCommitIndex;
-        }
-
-        if (typeof badCommit === 'string') {
-            const candidateBadCommitIndex = this.indexOf(badCommit, allBuilds);
-            if (typeof candidateBadCommitIndex !== 'number') {
-                throw new Error(`Provided bad commit ${badCommit} is not a released insiders build.`);
-            }
-
-            badCommitIndex = candidateBadCommitIndex;
-        }
-
-        if (badCommitIndex >= goodCommitIndex) {
-            throw new Error(`Provided bad commit ${badCommit} cannot be older or same as good commit ${goodCommit}.`);
-        }
-
-        return allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
-    }
-
-    private indexOf(commit: string, builds: IBuild[]): number | undefined {
-        for (let i = 0; i < builds.length; i++) {
-            const build = builds[i];
-            if (build.commit === commit) {
-                return i;
-            }
-        }
-
-        return undefined;
     }
 }
 

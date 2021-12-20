@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { spawnSync } from "child_process";
-import { promises } from "fs";
-import { dirname } from "path";
-import { Platform, platform } from "./constants";
+import { spawnSync } from 'child_process';
+import { promises } from 'fs';
+import { join } from 'path';
+import { BUILD_FOLDER, Platform, platform } from './constants';
 
 export async function exists(path: string): Promise<boolean> {
     try {
@@ -16,6 +16,14 @@ export async function exists(path: string): Promise<boolean> {
     } catch (error) {
         return false;
     }
+}
+
+export function getBuildPath(commit: string): string {
+    if (platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
+        return join(BUILD_FOLDER, commit.substring(0, 6)); // keep the folder path small for windows max path length restrictions
+    }
+
+    return join(BUILD_FOLDER, commit);
 }
 
 export async function unzip(source: string, destination: string): Promise<void> {

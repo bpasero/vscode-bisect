@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { join } from "path";
-import open from "open";
-import kill from "tree-kill";
-import { builds, IBuild } from "./builds";
-import { BUILD_FOLDER, DATA_FOLDER, EXTENSIONS_FOLDER, LOGGER, Platform, platform, Runtime, USER_DATA_FOLDER } from "./constants";
-import { mkdirSync, rmSync } from "fs";
-import { exists } from "./files";
-import chalk from "chalk";
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { join } from 'path';
+import open from 'open';
+import kill from 'tree-kill';
+import { builds, IBuild } from './builds';
+import { DATA_FOLDER, EXTENSIONS_FOLDER, LOGGER, Platform, platform, Runtime, USER_DATA_FOLDER } from './constants';
+import { mkdirSync, rmSync } from 'fs';
+import { exists, getBuildPath } from './files';
+import chalk from 'chalk';
 
 export interface IInstance {
     stop(): Promise<unknown>;
@@ -33,9 +33,11 @@ class Launcher {
     async launch(build: IBuild): Promise<IInstance> {
 
         // Install
+        console.log(`Downloading: ${chalk.green(build.commit)}...`);
         await builds.installBuild(build);
 
         // Launch according to runtime
+        console.log(`Launching: ${chalk.green(build.commit)}...`);
         switch (build.runtime) {
             case Runtime.Web:
                 return this.launchBrowser(build);
@@ -48,6 +50,10 @@ class Launcher {
         const cp = await this.spawnBuild(build);
 
         cp.stdout.on('data', data => {
+            if (LOGGER.verbose) {
+                console.error(`[Server (stdout)]: ${data.toString()}`);
+            }
+
             const matches = Launcher.WEB_AVAILABLE_REGEX.exec(data.toString());
             const url = matches?.[1];
             if (url) {
@@ -57,7 +63,7 @@ class Launcher {
 
         cp.stderr.on('data', data => {
             if (LOGGER.verbose) {
-                console.error(`[Server]: ${data.toString()}`);
+                console.error(`[Server (stderr)]: ${data.toString()}`);
             }
         });
 
@@ -71,9 +77,15 @@ class Launcher {
     private async launchElectron(build: IBuild): Promise<IInstance> {
         const cp = await this.spawnBuild(build);
 
+        cp.stdout.on('data', data => {
+            if (LOGGER.verbose) {
+                console.error(`[Electron (stdout)]: ${data.toString()}`);
+            }
+        });
+
         cp.stderr.on('data', data => {
             if (LOGGER.verbose) {
-                console.error(`[Electron]: ${data.toString()}`);
+                console.error(`[Electron (stderr)]: ${data.toString()}`);
             }
         });
 
@@ -86,7 +98,7 @@ class Launcher {
     }
 
     private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
-        const executable = await this.getBuildExecutable(build);
+        const executable = await builds.getBuildExecutable(build);
 
         const executableExists = await exists(executable);
         if (!executableExists) {
@@ -125,70 +137,6 @@ class Launcher {
 
             case Runtime.Desktop:
                 return spawn(executable, args);
-        }
-    }
-
-    private async getBuildExecutable({ runtime, commit }: IBuild): Promise<string> {
-        const buildName = await this.getBuildName({ runtime, commit });
-
-        switch (runtime) {
-            case Runtime.Web:
-                switch (platform) {
-                    case Platform.MacOSX64:
-                    case Platform.MacOSArm:
-                    case Platform.LinuxX64:
-                    case Platform.LinuxArm:
-                        return join(BUILD_FOLDER, commit, buildName, 'server.sh')
-                    case Platform.WindowsX64:
-                        return join(BUILD_FOLDER, commit, buildName, 'server.cmd')
-                }
-
-            case Runtime.Desktop:
-                switch (platform) {
-                    case Platform.MacOSX64:
-                    case Platform.MacOSArm:
-                        return join(BUILD_FOLDER, commit, buildName, 'Contents', 'MacOS', 'Electron')
-                    case Platform.LinuxX64:
-                    case Platform.LinuxArm:
-                        return join(BUILD_FOLDER, commit, buildName, 'code-insiders')
-                    case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        return join(BUILD_FOLDER, commit, buildName, 'Code - Insiders.exe')
-                }
-        }
-    }
-
-    private async getBuildName({ runtime, commit }: IBuild): Promise<string> {
-        switch (runtime) {
-            case Runtime.Web:
-                switch (platform) {
-                    case Platform.MacOSX64:
-                    case Platform.MacOSArm:
-                        return 'vscode-server-darwin-web';
-                    case Platform.LinuxX64:
-                    case Platform.LinuxArm:
-                        return 'vscode-server-linux-x64-web';
-                    case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        return 'vscode-server-win32-x64-web';
-                }
-
-            case Runtime.Desktop:
-                switch (platform) {
-                    case Platform.MacOSX64:
-                    case Platform.MacOSArm:
-                        return 'Visual Studio Code - Insiders.app';
-                    case Platform.LinuxX64:
-                        return 'VSCode-linux-x64';
-                    case Platform.LinuxArm:
-                        return 'VSCode-linux-arm64';
-                    case Platform.WindowsX64:
-                    case Platform.WindowsArm: {
-                        const buildMeta = await builds.fetchBuildMeta({ runtime, commit });
-
-                        return platform === Platform.WindowsX64 ? `VSCode-win32-x64-${buildMeta.productVersion}` : `VSCode-win32-arm64-${buildMeta.productVersion}`;
-                    }
-                }
         }
     }
 }

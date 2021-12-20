@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { program, Option } from "commander";
-import { rmSync } from "fs";
-import { bisecter } from "./bisect";
-import { BUILD_FOLDER, LOGGER, Runtime } from "./constants";
+import { program, Option } from 'commander';
+import { rmSync } from 'fs';
+import { bisecter } from './bisect';
+import { BUILD_FOLDER, LOGGER, Runtime } from './constants';
 
 module.exports = async function (argv: string[]): Promise<void> {
 

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { tmpdir } from "os";
-import { join } from "path";
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 const ROOT = join(tmpdir(), 'vscode-bisect');
 
