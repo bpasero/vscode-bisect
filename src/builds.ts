@@ -73,7 +73,7 @@ class Builds {
         // Warm up git
         await git.whenReady;
 
-        console.log(`${chalk.gray('[git]')} checking ${chalk.green(builds.length)} builds git branch origin to be ${chalk.green('main')} (this will be slow for the first time and then use cached lookups)...`);
+        console.log(`${chalk.gray('[git]')} checking ${chalk.green(builds.length)} builds branch origin to be ${chalk.green('main')} (this will be slow for the first time and then use cached lookups)...`);
 
         const progressBar = new SingleBar({ clearOnComplete: true }, Presets.rect);
         progressBar.start(builds.length, 0);

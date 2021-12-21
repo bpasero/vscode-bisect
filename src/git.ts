@@ -37,7 +37,7 @@ class Git {
 
         // Bring up to date otherwise
         if (await exists(GIT_VSCODE_FOLDER)) {
-            console.log(`${chalk.gray('[git]')} pulling VS Code changes into ${chalk.green(GIT_FOLDER)}...`);
+            console.log(`${chalk.gray('[git]')} pulling latest changes into ${chalk.green(GIT_FOLDER)}...`);
 
             const git = simpleGit({ baseDir: GIT_VSCODE_FOLDER });
             await git.checkout('main');
