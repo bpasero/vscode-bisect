@@ -36,7 +36,7 @@ class Launcher {
         await builds.installBuild(build);
 
         // Launch according to runtime
-        console.log(`Launching build ${chalk.green(build.commit)}...`);
+        console.log(`${chalk.gray('[build]')} starting build ${chalk.green(build.commit)}...`);
         switch (build.runtime) {
             case Runtime.Web:
                 return this.launchBrowser(build);
@@ -101,11 +101,11 @@ class Launcher {
 
         const executableExists = await exists(executable);
         if (!executableExists) {
-            throw new Error(`Unable to find executable ${executable} on disk. Is the archive corrupt?`);
+            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
         }
 
         if (LOGGER.verbose) {
-            console.log(`Starting build via ${chalk.green(executable)}...`);
+            console.log(`${chalk.gray('[build]')} starting build via ${chalk.green(executable)}...`);
         }
 
         const args = [

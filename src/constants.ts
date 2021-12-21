@@ -6,13 +6,19 @@
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-const ROOT = join(tmpdir(), 'vscode-bisect');
+export const ROOT = join(tmpdir(), 'vscode-bisect');
 
 export const BUILD_FOLDER = join(ROOT, '.builds');
 
 export const DATA_FOLDER = join(ROOT, '.data');
 export const USER_DATA_FOLDER = join(DATA_FOLDER, 'data');
 export const EXTENSIONS_FOLDER = join(DATA_FOLDER, 'extensions');
+
+export const GIT_FOLDER = join(ROOT, 'git');
+export const GIT_VSCODE_FOLDER = join(GIT_FOLDER, 'git', 'vscode');
+export const GIT_REPO = 'https://github.com/microsoft/vscode.git';
+
+export const STORAGE_FILE = join(ROOT, 'storage.json');
 
 export enum Platform {
     MacOSX64 = 1,

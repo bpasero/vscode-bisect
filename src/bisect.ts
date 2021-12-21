@@ -28,19 +28,21 @@ class Bisecter {
         // Get builds to bisect
         const buildsRange = await builds.fetchBuilds(runtime, goodCommit, badCommit);
 
-        console.log(`Bisecting ${chalk.green(buildsRange.length)} builds (roughly ${chalk.green(Math.round(Math.log2(buildsRange.length)))} steps)`);
-
-        // Start bisecting from the middle of the builds range
-        const initialState = Math.round(buildsRange.length / 2);
-        const state: IBisectState = {
-            currentChunk: initialState,
-            currentIndex: initialState
-        }
+        console.log(`${chalk.gray('[build]')} total ${chalk.green(buildsRange.length)} builds with roughly ${chalk.green(Math.round(Math.log2(buildsRange.length)))} steps`);
 
         let goodBuild: IBuild | undefined = undefined;
         let badBuild: IBuild | undefined = undefined;
         let build: IBuild;
         let quit = false;
+
+        if (buildsRange.length < 2) {
+            return this.finishBisect(badBuild, goodBuild);
+        }
+
+        // Start bisecting via binary search
+
+        const state = { currentChunk: buildsRange.length, currentIndex: 0 };
+        this.nextState(state, BisectResponse.Bad /* try older */);
 
         // Go over next builds for as long as we are not done...
         while (build = buildsRange[state.currentIndex]) {
@@ -67,7 +69,7 @@ class Bisecter {
 
     private async finishBisect(badBuild: IBuild | undefined, goodBuild: IBuild | undefined): Promise<void> {
         if (goodBuild && badBuild) {
-            console.log(`${chalk.green(badBuild.commit)} is the first bad commit after ${chalk.green(goodBuild.commit)}.`);
+            console.log(`${chalk.gray('[build]')} ${chalk.green(badBuild.commit)} is the first bad commit after ${chalk.green(goodBuild.commit)}.`);
 
             const response = await prompts([
                 {
@@ -90,9 +92,11 @@ ${chalk.green(`git bisect start && git bisect bad ${badBuild.commit} && git bise
 
 `);
         } else if (badBuild) {
-            console.log(chalk.red('All builds are bad!'));
+            console.log(`${chalk.gray('[build]')} ${chalk.red('All builds are bad!')}`);
+        } else if (goodBuild) {
+            console.log(`${chalk.gray('[build]')} ${chalk.green('All builds are good!')}`);
         } else {
-            console.log(chalk.green('All builds are good!'));
+            console.log(`${chalk.gray('[build]')} ${chalk.red('No builds bisected. Bisect needs at least 2 builds from "main" branch to work.')}`);
         }
     }
 

@@ -5,9 +5,11 @@
 
 import chalk from 'chalk';
 import { dirname, join } from 'path';
+import { Presets, SingleBar } from 'cli-progress';
 import { LOGGER, Platform, platform, Runtime } from './constants';
 import { fileGet, jsonGet } from './fetch';
 import { exists, getBuildPath, unzip } from './files';
+import { git } from './git';
 
 export interface IBuild {
     runtime: Runtime;
@@ -22,6 +24,8 @@ interface IBuildMetadata {
 class Builds {
 
     async fetchBuilds(runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<IBuild[]> {
+
+        // Fetch all released insider builds
         const allBuilds = await this.fetchAllBuilds(runtime);
 
         let goodCommitIndex = allBuilds.length - 1;  // last build (oldest) by default
@@ -33,6 +37,10 @@ class Builds {
                 throw new Error(`Provided good commit ${goodCommit} is not a released insiders build.`);
             }
 
+            if (!await git.isOnMainBranch(goodCommit)) {
+                throw new Error(`Provided good commit ${goodCommit} does not seem to be on the main branch.`);
+            }
+
             goodCommitIndex = candidateGoodCommitIndex;
         }
 
@@ -42,6 +50,10 @@ class Builds {
                 throw new Error(`Provided bad commit ${badCommit} is not a released insiders build.`);
             }
 
+            if (!await git.isOnMainBranch(badCommit)) {
+                throw new Error(`Provided good commit ${badCommit} does not seem to be on the main branch.`);
+            }
+
             badCommitIndex = candidateBadCommitIndex;
         }
 
@@ -49,7 +61,35 @@ class Builds {
             throw new Error(`Provided bad commit ${badCommit} cannot be older or same as good commit ${goodCommit}.`);
         }
 
-        return allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
+        // Build a range based on the bad and good commits if any
+        const buildsInRange = allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
+
+        // Drop those builds that are not on main branch
+        return this.filterMainBuilds(buildsInRange);
+    }
+
+    private async filterMainBuilds(builds: IBuild[]): Promise<IBuild[]> {
+
+        // Warm up git
+        await git.whenReady;
+
+        console.log(`${chalk.gray('[git]')} checking ${chalk.green(builds.length)} builds git branch origin to be ${chalk.green('main')}...`);
+
+        const progressBar = new SingleBar({ clearOnComplete: true }, Presets.rect);
+        progressBar.start(builds.length, 0);
+
+        const buildsOnMainBranch: IBuild[] = [];
+        for (const build of builds) {
+            if (await git.isOnMainBranch(build.commit)) {
+                buildsOnMainBranch.push(build);
+            }
+
+            progressBar.increment();
+        }
+
+        progressBar.stop();
+
+        return buildsOnMainBranch;
     }
 
     private indexOf(commit: string, builds: IBuild[]): number | undefined {
@@ -108,7 +148,7 @@ class Builds {
         const path = join(getBuildPath(commit), buildName);
 
         if (LOGGER.verbose) {
-            console.log(`Using ${chalk.green(path)} for the next build to try`);
+            console.log(`${chalk.gray('[build]')} using ${chalk.green(path)} for the next build to try`);
         }
 
         if (await exists(path)) {
@@ -117,7 +157,7 @@ class Builds {
 
         // Download
         const url = `https://az764295.vo.msecnd.net/insider/${commit}/${buildName}`;
-        console.log(`Downloading build from ${chalk.green(url)}...`);
+        console.log(`${chalk.gray('[build]')} downloading build from ${chalk.green(url)}...`);
         await fileGet(url, path);
 
         // Unzip
@@ -129,7 +169,7 @@ class Builds {
             // zip contains a single top level folder to use
             destination = dirname(path);
         }
-        console.log(`Unzipping build to ${chalk.green(destination)}...`);
+        console.log(`${chalk.gray('[build]')} unzipping build to ${chalk.green(destination)}...`);
         await unzip(path, destination);
     }
 

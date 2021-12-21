@@ -27,12 +27,15 @@
     },
     "dependencies": {
         "chalk": "4.x",
+        "cli-progress": "^3.9.1",
         "commander": "^8.3.0",
         "open": "^8.4.0",
         "prompts": "^2.4.2",
+        "simple-git": "^2.48.0",
         "tree-kill": "^1.2.2"
     },
     "devDependencies": {
+        "@types/cli-progress": "^3.9.2",
         "@types/node": "16.x",
         "@types/prompts": "^2.0.14",
         "typescript": "4.5.4"
