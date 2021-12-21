@@ -73,7 +73,7 @@ class Bisecter {
 
             const response = await prompts([
                 {
-                    type: "confirm",
+                    type: 'confirm',
                     name: 'open',
                     initial: true,
                     message: 'Would you like to open GitHub for the list of changes?',

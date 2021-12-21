@@ -6,7 +6,7 @@
 import chalk from 'chalk';
 import { dirname, join } from 'path';
 import { Presets, SingleBar } from 'cli-progress';
-import { LOGGER, Platform, platform, Runtime } from './constants';
+import { CONFIG, LOGGER, Platform, platform, Runtime } from './constants';
 import { fileGet, jsonGet } from './fetch';
 import { exists, getBuildPath, unzip } from './files';
 import { git } from './git';
@@ -29,7 +29,7 @@ class Builds {
         const allBuilds = await this.fetchAllBuilds(runtime);
 
         let goodCommitIndex = allBuilds.length - 1;  // last build (oldest) by default
-        let badCommitIndex = 0;                     // first build (newest) by default
+        let badCommitIndex = 0;                      // first build (newest) by default
 
         if (typeof goodCommit === 'string') {
             const candidateGoodCommitIndex = this.indexOf(goodCommit, allBuilds);
@@ -37,7 +37,7 @@ class Builds {
                 throw new Error(`Provided good commit ${goodCommit} is not a released insiders build.`);
             }
 
-            if (!await git.isOnMainBranch(goodCommit)) {
+            if (CONFIG.enableGitBranchChecks && !await git.isOnMainBranch(goodCommit)) {
                 throw new Error(`Provided good commit ${goodCommit} does not seem to be on the main branch.`);
             }
 
@@ -50,7 +50,7 @@ class Builds {
                 throw new Error(`Provided bad commit ${badCommit} is not a released insiders build.`);
             }
 
-            if (!await git.isOnMainBranch(badCommit)) {
+            if (CONFIG.enableGitBranchChecks && !await git.isOnMainBranch(badCommit)) {
                 throw new Error(`Provided good commit ${badCommit} does not seem to be on the main branch.`);
             }
 
@@ -63,6 +63,11 @@ class Builds {
 
         // Build a range based on the bad and good commits if any
         const buildsInRange = allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
+
+        // Optional branch checking
+        if (CONFIG.enableGitBranchChecks) {
+            return this.filterMainBuilds(buildsInRange);
+        }
 
         // Drop those builds that are not on main branch
         return buildsInRange;

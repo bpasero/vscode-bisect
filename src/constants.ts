@@ -53,3 +53,7 @@ export enum Runtime {
 export const LOGGER = {
     verbose: false
 }
+
+export const CONFIG = {
+    enableGitBranchChecks: false
+}
