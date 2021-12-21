@@ -65,7 +65,7 @@ class Builds {
         const buildsInRange = allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
 
         // Drop those builds that are not on main branch
-        return this.filterMainBuilds(buildsInRange);
+        return buildsInRange;
     }
 
     private async filterMainBuilds(builds: IBuild[]): Promise<IBuild[]> {
