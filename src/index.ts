@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import chalk from 'chalk';
 import { program, Option } from 'commander';
 import { rmSync } from 'fs';
 import prompts from 'prompts';
@@ -88,6 +89,7 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
 
     bisecter.start(opts.runtime === 'desktop' ? Runtime.Desktop : Runtime.Web, goodCommit, badCommit).catch(error => {
         console.error(`${error}`);
+        console.log(`You can run ${chalk.green('vscode-bisect --verbose')} for more detailed output and ${chalk.green('vscode-bisect --clean')} for a fresh start without caches.`);
         process.exit(1);
     });
 }
