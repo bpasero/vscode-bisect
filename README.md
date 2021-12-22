@@ -7,16 +7,8 @@ Allows to bisect released VSCode web and desktop insider builds for issues simil
 
 ## Usage
 
-Install vscode-bisect globally:
-
 ```sh
-npm install -g vscode-bisect
-```
-
-Verify the installation:
-
-```sh
-vscode-bisect --help
+npx vscode-bisect [ARGS]
 ```
 
 `vscode-bisect` is meant to be only used as a command line tool.
