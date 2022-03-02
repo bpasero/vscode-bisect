@@ -109,6 +109,7 @@ class Launcher {
         }
 
         const args = [
+            '--accept-server-license-terms',
             '--extensions-dir',
             EXTENSIONS_FOLDER
         ];

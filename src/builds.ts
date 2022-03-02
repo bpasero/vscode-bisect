@@ -269,11 +269,23 @@ class Builds {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
                     case Platform.LinuxX64:
-                    case Platform.LinuxArm:
-                        return join(buildPath, buildName, 'server.sh')
+                    case Platform.LinuxArm: {
+                        const oldLocation = join(buildPath, buildName, 'server.sh');
+                        if (await exists(oldLocation)) {
+                            return oldLocation; // only valid until 1.64.x
+                        }
+
+                        return join(buildPath, buildName, 'bin', 'code-server-insiders');
+                    }
                     case Platform.WindowsX64:
-                    case Platform.WindowsArm:
-                        return join(buildPath, buildName, 'server.cmd')
+                    case Platform.WindowsArm: {
+                        const oldLocation = join(buildPath, buildName, 'server.cmd');
+                        if (await exists(oldLocation)) {
+                            return oldLocation; // only valid until 1.64.x
+                        }
+
+                        return join(buildPath, buildName, 'bin', 'code-server-insiders.cmd');
+                    }
                 }
 
             case Runtime.Desktop:
