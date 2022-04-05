@@ -68,7 +68,16 @@ class Launcher {
 
         return {
             stop: () => new Promise<void>((resolve, reject) => {
-                kill(cp.pid!, error => error ? reject(error) : resolve())
+                kill(cp.pid!, error => {
+                    if (error && /There is no running instance of the task/i.test(error.message)) {
+                        console.warn(error);
+                        resolve();
+                    } else if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
             })
         }
     }
