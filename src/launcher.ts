@@ -68,7 +68,21 @@ class Launcher {
 
         return {
             stop: () => new Promise<void>((resolve, reject) => {
-                kill(cp.pid!, error => error ? reject(error) : resolve())
+                const pid = cp.pid!;
+                kill(pid, error => {
+                    if (error) {
+                        try {
+                            process.kill(pid, 0);
+                        } catch (error) {
+                            resolve();      // process doesn't exist anymore... so, all good
+                            return;
+                        }
+    
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
             })
         }
     }
