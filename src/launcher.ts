@@ -68,11 +68,16 @@ class Launcher {
 
         return {
             stop: () => new Promise<void>((resolve, reject) => {
-                kill(cp.pid!, error => {
-                    if (error && /There is no running instance of the task/i.test(error.message)) {
-                        console.warn(error);
-                        resolve();
-                    } else if (error) {
+                const pid = cp.pid!;
+                kill(pid, error => {
+                    if (error) {
+                        try {
+                            process.kill(pid, 0);
+                        } catch (error) {
+                            resolve();      // process doesn't exist anymore... so, all good
+                            return;
+                        }
+    
                         reject(error);
                     } else {
                         resolve();
