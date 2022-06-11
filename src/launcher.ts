@@ -130,6 +130,11 @@ class Launcher {
 
         if (build.runtime === Runtime.Desktop) {
             args.push(
+                '--disable-telemetry',
+                '--skip-welcome',
+                '--skip-release-notes',
+                '--no-cached-data',
+                '--disable-updates',
                 '--user-data-dir',
                 USER_DATA_FOLDER
             );
