@@ -22,7 +22,7 @@ module.exports = async function (argv: string[]): Promise<void> {
     }
 
     program
-        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a web (default) or desktop version').choices(['web', 'desktop']))
+        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a web or desktop (default) version').choices(['web', 'desktop']))
         .option('-g, --good <commit>', 'commit hash of a released insiders that does not reproduce the issue')
         .option('-b, --bad <commit>', 'commit hash of a released insiders that reproduces the issue')
         .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
@@ -87,7 +87,7 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         }
     }
 
-    bisecter.start(opts.runtime === 'desktop' ? Runtime.Desktop : Runtime.Web, goodCommit, badCommit).catch(error => {
+    bisecter.start(opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop, goodCommit, badCommit).catch(error => {
         console.error(`${error}`);
         console.log(`You can run ${chalk.green('vscode-bisect --verbose')} for more detailed output and ${chalk.green('vscode-bisect --clean')} for a fresh start without caches.`);
         process.exit(1);
