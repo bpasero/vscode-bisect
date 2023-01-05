@@ -187,7 +187,7 @@ class Builds {
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
-                        return 'vscode-server-darwin-web.zip';
+                        return 'vscode-server-darwin-x64-web.zip';
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
                         return 'vscode-server-linux-x64-web.tar.gz';
@@ -225,7 +225,7 @@ class Builds {
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
-                        return 'vscode-server-darwin-web';
+                        return 'vscode-server-darwin-x64-web';
                     case Platform.LinuxX64:
                     case Platform.LinuxArm:
                         return 'vscode-server-linux-x64-web';
