@@ -20,6 +20,9 @@ export const GIT_REPO = 'https://github.com/microsoft/vscode.git';
 
 export const STORAGE_FILE = join(ROOT, 'storage.json');
 
+export const PERFORMANCE_FILE = join(ROOT, 'startup-perf.txt');
+export const PERFORMANCE_RUNS = 10;
+
 export enum Platform {
     MacOSX64 = 1,
     MacOSArm,
@@ -55,5 +58,6 @@ export const LOGGER = {
 }
 
 export const CONFIG = {
-    enableGitBranchChecks: false
+    enableGitBranchChecks: false,
+    performance: false
 }

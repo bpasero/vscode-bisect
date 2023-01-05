@@ -8,7 +8,9 @@ import { program, Option } from 'commander';
 import { rmSync } from 'fs';
 import prompts from 'prompts';
 import { bisecter } from './bisect';
+import { git } from './git';
 import { BUILD_FOLDER, CONFIG, LOGGER, ROOT, Runtime } from './constants';
+import { launcher } from './launcher';
 
 module.exports = async function (argv: string[]): Promise<void> {
 
@@ -16,17 +18,21 @@ module.exports = async function (argv: string[]): Promise<void> {
         runtime?: 'web' | 'desktop';
         good?: string;
         bad?: string;
+        commit?: string;
         verbose?: boolean;
-        clean?: boolean;
+        reset?: boolean;
+        perf?: boolean;
         verifyMainBranch: boolean;
     }
 
     program
         .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a web or desktop (default) version').choices(['web', 'desktop']))
-        .option('-g, --good <commit>', 'commit hash of a released insiders that does not reproduce the issue')
-        .option('-b, --bad <commit>', 'commit hash of a released insiders that reproduces the issue')
+        .option('-g, --good <commit>', 'commit hash of a released insiders build that does not reproduce the issue')
+        .option('-b, --bad <commit>', 'commit hash of a released insiders build that reproduces the issue')
+        .option('-c, --commit <commit>', 'commit hash of a specific insiders build to test (supercedes -g and -b)')
         .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
-        .option('-c, --clean', 'deletes the cache folder (use only for troubleshooting)')
+        .option('-r, --reset', 'deletes the cache folder (use only for troubleshooting)')
+        .option('-p, --perf', 'runs a performance test (implies desktop runtime)')
         .option('-v, --verbose', 'logs verbose output to the console when errors occur');
 
     program.addHelpText('after', `
@@ -41,55 +47,75 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         LOGGER.verbose = true;
     }
 
+    if (opts.perf) {
+        opts.runtime = 'desktop';
+        CONFIG.performance = true;
+
+        await git.whenReady;
+    }
+
     if (opts.verifyMainBranch) {
         CONFIG.enableGitBranchChecks = true;
     }
 
-    if (opts.clean) {
+    if (opts.reset) {
         try {
             rmSync(ROOT, { recursive: true });
         } catch (error) { }
     }
 
     let badCommit = opts.bad;
-    if (!badCommit) {
-        const response = await prompts([
-            {
-                type: 'text',
-                name: 'bad',
-                initial: '',
-                message: 'Commit of released insiders build that reproduces the issue (leave empty to pick the latest build)',
-            }
-        ]);
-
-        if (typeof response.bad === 'undefined') {
-            process.exit();
-        } else if (response.bad) {
-            badCommit = response.bad;
-        }
-    }
-
     let goodCommit = opts.good;
-    if (!goodCommit) {
-        const response = await prompts([
-            {
-                type: 'text',
-                name: 'good',
-                initial: '',
-                message: 'Commit of released insiders build that does not reproduce the issue (leave empty to pick the oldest build)',
-            }
-        ]);
+    if (!opts.commit) {
+        if (!badCommit) {
+            const response = await prompts([
+                {
+                    type: 'text',
+                    name: 'bad',
+                    initial: '',
+                    message: 'Commit of released insiders build that reproduces the issue (leave empty to pick the latest build)',
+                }
+            ]);
 
-        if (typeof response.good === 'undefined') {
-            process.exit();
-        } else if (response.good) {
-            goodCommit = response.good;
+            if (typeof response.bad === 'undefined') {
+                process.exit();
+            } else if (response.bad) {
+                badCommit = response.bad;
+            }
+        }
+
+        if (!goodCommit) {
+            const response = await prompts([
+                {
+                    type: 'text',
+                    name: 'good',
+                    initial: '',
+                    message: 'Commit of released insiders build that does not reproduce the issue (leave empty to pick the oldest build)',
+                }
+            ]);
+
+            if (typeof response.good === 'undefined') {
+                process.exit();
+            } else if (response.good) {
+                goodCommit = response.good;
+            }
         }
     }
 
-    bisecter.start(opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop, goodCommit, badCommit).catch(error => {
-        console.error(`${error}`);
-        console.log(`You can run ${chalk.green('vscode-bisect --verbose')} for more detailed output and ${chalk.green('vscode-bisect --clean')} for a fresh start without caches.`);
+    try {
+
+        // Commit provided: launch only that commit
+        if (opts.commit) {
+            await launcher.launch({ commit: opts.commit, runtime: opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop });
+        }
+
+        // No commit provided: bisect commit ranges
+        else {
+            await bisecter.start(opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop, goodCommit, badCommit);
+        }
+    } catch (error) {
+        console.log(`${chalk.red('[error]')} ${error}`);
+        console.log(`You can run ${chalk.green('vscode-bisect --verbose')} for more detailed output and ${chalk.green('vscode-bisect --reset')} for a fresh start without caches.`);
         process.exit(1);
-    });
+    }
 }
