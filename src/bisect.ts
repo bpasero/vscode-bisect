@@ -23,7 +23,7 @@ interface IBisectState {
 
 class Bisecter {
 
-    async start(runtime: Runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<void> {
+    async start(runtime: Runtime = Runtime.WebLocal, goodCommit?: string, badCommit?: string): Promise<void> {
 
         // Get builds to bisect
         const buildsRange = await builds.fetchBuilds(runtime, goodCommit, badCommit);

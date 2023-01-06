@@ -23,6 +23,10 @@ export const STORAGE_FILE = join(ROOT, 'storage.json');
 export const PERFORMANCE_FILE = join(ROOT, 'startup-perf.txt');
 export const PERFORMANCE_RUNS = 10;
 
+export const VSCODE_DEV_URL = function (commit: string) {
+    return `https://insiders.vscode.dev/?vscode-version=${commit}&quality=insider`;
+}
+
 export enum Platform {
     MacOSX64 = 1,
     MacOSArm,
@@ -49,8 +53,9 @@ export const platform = (() => {
 })();
 
 export enum Runtime {
-    Web = 1,
-    Desktop
+    WebLocal = 1,
+    WebRemote,
+    DesktopLocal
 }
 
 export const LOGGER = {

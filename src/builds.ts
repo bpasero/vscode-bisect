@@ -23,7 +23,7 @@ interface IBuildMetadata {
 
 class Builds {
 
-    async fetchBuilds(runtime = Runtime.Web, goodCommit?: string, badCommit?: string): Promise<IBuild[]> {
+    async fetchBuilds(runtime = Runtime.WebLocal, goodCommit?: string, badCommit?: string): Promise<IBuild[]> {
 
         // Fetch all released insider builds
         const allBuilds = await this.fetchAllBuilds(runtime);
@@ -116,7 +116,8 @@ class Builds {
 
     private getBuildApiName(runtime: Runtime): string {
         switch (runtime) {
-            case Runtime.Web:
+            case Runtime.WebLocal:
+            case Runtime.WebRemote:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -129,7 +130,7 @@ class Builds {
                         return 'server-win32-x64-web';
                 }
 
-            case Runtime.Desktop:
+            case Runtime.DesktopLocal:
                 switch (platform) {
                     case Platform.MacOSX64:
                         return 'darwin';
@@ -167,7 +168,7 @@ class Builds {
 
         // Unzip
         let destination: string;
-        if (runtime === Runtime.Desktop && platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
+        if (runtime === Runtime.DesktopLocal && platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
             // zip does not contain a single top level folder to use...
             destination = path.substring(0, path.lastIndexOf('.zip'));
         } else {
@@ -183,7 +184,8 @@ class Builds {
 
             // We currently do not have ARM enabled servers
             // so we fallback to x64 until we ship ARM.
-            case Runtime.Web:
+            case Runtime.WebLocal:
+            case Runtime.WebRemote:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -200,7 +202,7 @@ class Builds {
             // - macOS: just the name, nice! (e.g. VSCode-darwin.zip)
             // - Linux: includes some unix timestamp (e.g. code-insider-x64-1639979337.tar.gz)
             // - Windows: includes the version (e.g. VSCode-win32-x64-1.64.0-insider.zip)
-            case Runtime.Desktop:
+            case Runtime.DesktopLocal:
                 switch (platform) {
                     case Platform.MacOSX64:
                         return 'VSCode-darwin.zip';
@@ -221,7 +223,8 @@ class Builds {
 
     async getBuildName({ runtime, commit }: IBuild): Promise<string> {
         switch (runtime) {
-            case Runtime.Web:
+            case Runtime.WebLocal:
+            case Runtime.WebRemote:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -236,7 +239,7 @@ class Builds {
 
             // Here, only Windows does not play by our rules and adds the version number
             // - Windows: includes the version (e.g. VSCode-win32-x64-1.64.0-insider)
-            case Runtime.Desktop:
+            case Runtime.DesktopLocal:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -264,7 +267,8 @@ class Builds {
         const buildName = await builds.getBuildName({ runtime, commit });
 
         switch (runtime) {
-            case Runtime.Web:
+            case Runtime.WebLocal:
+            case Runtime.WebRemote:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -288,7 +292,7 @@ class Builds {
                     }
                 }
 
-            case Runtime.Desktop:
+            case Runtime.DesktopLocal:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:

@@ -15,7 +15,7 @@ import { launcher } from './launcher';
 module.exports = async function (argv: string[]): Promise<void> {
 
     interface Opts {
-        runtime?: 'web' | 'desktop';
+        runtime?: 'web' | 'desktop' | 'vscode.dev';
         good?: string;
         bad?: string;
         commit?: string;
@@ -26,7 +26,7 @@ module.exports = async function (argv: string[]): Promise<void> {
     }
 
     program
-        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a web or desktop (default) version').choices(['web', 'desktop']))
+        .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a local web, online vscode.dev or local desktop (default) version').choices(['desktop', 'web', 'vscode.dev']))
         .option('-g, --good <commit>', 'commit hash of a released insiders build that does not reproduce the issue')
         .option('-b, --bad <commit>', 'commit hash of a released insiders build that reproduces the issue')
         .option('-c, --commit <commit>', 'commit hash of a specific insiders build to test (supercedes -g and -b)')
@@ -103,15 +103,23 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
     }
 
     try {
+        let runtime: Runtime;
+        if (opts.runtime === 'web') {
+            runtime = Runtime.WebLocal;
+        } else if (opts.runtime === 'vscode.dev') {
+            runtime = Runtime.WebRemote;
+        } else {
+            runtime = Runtime.DesktopLocal;
+        }
 
         // Commit provided: launch only that commit
         if (opts.commit) {
-            await launcher.launch({ commit: opts.commit, runtime: opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop });
+            await launcher.launch({ commit: opts.commit, runtime });
         }
 
         // No commit provided: bisect commit ranges
         else {
-            await bisecter.start(opts.runtime === 'web' ? Runtime.Web : Runtime.Desktop, goodCommit, badCommit);
+            await bisecter.start(runtime, goodCommit, badCommit);
         }
     } catch (error) {
         console.log(`${chalk.red('[error]')} ${error}`);

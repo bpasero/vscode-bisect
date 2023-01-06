@@ -8,7 +8,7 @@ import { join } from 'path';
 import open from 'open';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
-import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, PERFORMANCE_FILE, PERFORMANCE_RUNS, Platform, platform, Runtime, USER_DATA_FOLDER } from './constants';
+import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, PERFORMANCE_FILE, PERFORMANCE_RUNS, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
 import { mkdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
 import { exists } from './files';
 import chalk from 'chalk';
@@ -40,15 +40,20 @@ class Launcher {
 
     async launch(build: IBuild): Promise<IInstance> {
 
-        // Install
-        await builds.installBuild(build);
+        // Install (unless web remote)
+        if (build.runtime !== Runtime.WebRemote) {
+            await builds.installBuild(build);
+        }
 
         // Launch according to runtime
         switch (build.runtime) {
-            case Runtime.Web:
+            case Runtime.WebLocal:
                 console.log(`${chalk.gray('[build]')} starting web build ${chalk.green(build.commit)}...`);
-                return this.launchBrowser(build);
-            case Runtime.Desktop:
+                return this.launchLocalWeb(build);
+            case Runtime.WebRemote:
+                console.log(`${chalk.gray('[build]')} opening vscode.dev ${chalk.green(build.commit)}...`);
+                return this.launchRemoteWeb(build);
+            case Runtime.DesktopLocal:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} starting desktop build ${chalk.green(build.commit)} multiple times and measuring performance...`);
                 } else {
@@ -58,7 +63,7 @@ class Launcher {
         }
     }
 
-    private async launchBrowser(build: IBuild): Promise<IInstance> {
+    private async launchLocalWeb(build: IBuild): Promise<IInstance> {
         const cp = await this.spawnBuild(build);
 
         cp.stdout.on('data', data => {
@@ -97,6 +102,14 @@ class Launcher {
                     }
                 });
             })
+        }
+    }
+
+    private async launchRemoteWeb(build: IBuild): Promise<IInstance> {
+        open(VSCODE_DEV_URL(build.commit));
+
+        return {
+            stop: async () => { }
         }
     }
 
@@ -185,9 +198,8 @@ class Launcher {
             EXTENSIONS_FOLDER
         ];
 
-        if (build.runtime === Runtime.Desktop) {
+        if (build.runtime === Runtime.DesktopLocal) {
             args.push(
-                '--disable-telemetry',
                 '--skip-welcome',
                 '--skip-release-notes',
                 '--disable-updates',
@@ -211,13 +223,15 @@ class Launcher {
                 );
             } else {
                 args.push(
-                    '--no-cached-data'
+                    '--no-cached-data',
+                    '--disable-telemetry' // only disable telemetry when not running performance tests to be able to look at perf marks
                 );
             }
         }
 
         switch (build.runtime) {
-            case Runtime.Web:
+            case Runtime.WebLocal:
+            case Runtime.WebRemote:
                 switch (platform) {
                     case Platform.MacOSX64:
                     case Platform.MacOSArm:
@@ -230,7 +244,7 @@ class Launcher {
                 }
 
 
-            case Runtime.Desktop:
+            case Runtime.DesktopLocal:
                 return spawn(executable, args);
         }
     }
