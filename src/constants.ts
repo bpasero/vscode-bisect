@@ -24,7 +24,7 @@ export const PERFORMANCE_FILE = join(ROOT, 'startup-perf.txt');
 export const PERFORMANCE_RUNS = 10;
 
 export const VSCODE_DEV_URL = function (commit: string) {
-    return `https://insiders.vscode.dev/?vscode-version=${commit}&quality=insider`;
+    return `https://insiders.vscode.dev/?vscode-version=${commit}`;
 }
 
 export enum Platform {
