@@ -31,7 +31,7 @@ export async function fileGet(url: string, path: string): Promise<void> {
 
     // Download
     return new Promise((resolve, reject) => {
-        get(url, res => {
+        const request = get(url, res => {
             const outStream = createWriteStream(path);
             outStream.on('close', () => resolve());
             outStream.on('error', reject);
@@ -39,5 +39,7 @@ export async function fileGet(url: string, path: string): Promise<void> {
             res.on('error', reject);
             res.pipe(outStream);
         });
+
+        request.on('error', reject);
     });
 }
