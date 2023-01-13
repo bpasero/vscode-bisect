@@ -26,6 +26,8 @@ module.exports = async function (argv: string[]): Promise<void> {
         verifyMainBranch: boolean;
     }
 
+    program.addHelpText('beforeAll', `Version: ${require('../package.json').version}\n`);
+
     program
         .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a local web, online vscode.dev or local desktop (default) version').choices(['desktop', 'web', 'vscode.dev']))
         .option('-g, --good <commit>', 'commit hash of a released insiders build that does not reproduce the issue')
