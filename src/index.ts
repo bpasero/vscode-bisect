@@ -30,7 +30,7 @@ module.exports = async function (argv: string[]): Promise<void> {
         .addOption(new Option('-r, --runtime <runtime>', 'whether to bisect with a local web, online vscode.dev or local desktop (default) version').choices(['desktop', 'web', 'vscode.dev']))
         .option('-g, --good <commit>', 'commit hash of a released insiders build that does not reproduce the issue')
         .option('-b, --bad <commit>', 'commit hash of a released insiders build that reproduces the issue')
-        .option('-c, --commit <commit|latest>', 'commit hash of a specific insiders build to test or "latest" (supercedes -g and -b)')
+        .option('-c, --commit <commit|latest>', 'commit hash of a specific insiders build to test or "latest" released build (supercedes -g and -b)')
         .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
         .option('-r, --reset', 'deletes the cache folder (use only for troubleshooting)')
         .option('-p, --perf', 'runs a performance test (implies desktop runtime)')
@@ -117,7 +117,7 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         if (opts.commit) {
             if (opts.commit === 'latest') {
                 const allBuilds = await builds.fetchBuilds(runtime);
-                opts.commit = allBuilds[0].commit;
+                commit = allBuilds[0].commit;
             } else {
                 commit = opts.commit;
             }
