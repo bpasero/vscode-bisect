@@ -371,10 +371,10 @@ class Launcher {
         const args = [
             '--accept-server-license-terms',
             '--extensions-dir',
+            EXTENSIONS_FOLDER,
             '--disable-workspace-trust',
             '--skip-welcome',
-            '--skip-release-notes',
-            EXTENSIONS_FOLDER
+            '--skip-release-notes'
         ];
 
         if (build.runtime === Runtime.DesktopLocal) {
