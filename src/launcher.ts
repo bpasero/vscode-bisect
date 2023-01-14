@@ -10,9 +10,9 @@ import open from 'open';
 import playwright from 'playwright';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
-import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
-import { mkdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
-import { exists } from './files';
+import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
+import { appendFileSync, mkdirSync, rmSync } from 'fs';
+import { exists, readLastLineSync } from './files';
 import chalk from 'chalk';
 
 export interface IInstance {
@@ -203,11 +203,21 @@ class Launcher {
 
         return new Promise<IInstance>(resolve => {
             page.on('console', async msg => {
+                const text = msg.text();
+                if (LOGGER.verbose) {
+                    console.error(`Playwright Console: ${text}`);
+                }
 
-                // Watch out for a console log message such as "[perf] from 'code/timeOrigin' to 'code/didStartWorkbench': 1888ms"
-                // and extract the time
+                // Write full message to perf file if we got a path
+                if (typeof CONFIG.performance === 'string') {
+                    const matches = /\[prof-timers\] (.+)/.exec(text);
+                    if (matches?.[1]) {
+                        appendFileSync(CONFIG.performance, `${matches[1]}\n`);
+                    }
+                }
 
-                const matches = /\[prof-timers\] (\d+)/.exec(msg.text());
+                // Extract ellapsed time from message
+                const matches = /\[prof-timers\] (\d+)/.exec(text);
                 const ellapsed = matches?.[1] ? parseInt(matches[1]) : undefined;
                 if (typeof ellapsed === 'number') {
                     resolve({ ellapsed, stop });
@@ -347,7 +357,8 @@ class Launcher {
             });
 
             // Process performance file
-            const matches = /^(\d+)/.exec(readFileSync(PERFORMANCE_FILE, 'utf8'));
+            const performanceFileLastLine = readLastLineSync(typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE);
+            const matches = /^(\d+)/.exec(performanceFileLastLine);
             if (matches) {
                 ellapsed = parseInt(matches[1]);
             }
@@ -386,15 +397,13 @@ class Launcher {
             );
 
             if (CONFIG.performance) {
-                if (await exists(PERFORMANCE_FILE)) {
-                    unlinkSync(PERFORMANCE_FILE); // ensure an empty performance file
-                }
+                const performanceFile = typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE;
 
                 args.push(
                     '--disable-extensions',
                     '--disable-features=CalculateNativeWinOcclusion',
                     '--prof-append-timers',
-                    PERFORMANCE_FILE,
+                    performanceFile,
                     GIT_VSCODE_FOLDER,
                     join(GIT_VSCODE_FOLDER, 'package.json')
                 );

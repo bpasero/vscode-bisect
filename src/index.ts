@@ -22,7 +22,7 @@ module.exports = async function (argv: string[]): Promise<void> {
         commit?: string;
         verbose?: boolean;
         reset?: boolean;
-        perf?: boolean;
+        perf?: boolean | string;
         verifyMainBranch: boolean;
     }
 
@@ -35,7 +35,7 @@ module.exports = async function (argv: string[]): Promise<void> {
         .option('-c, --commit <commit|latest>', 'commit hash of a specific insiders build to test or "latest" released build (supercedes -g and -b)')
         .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
         .option('-r, --reset', 'deletes the cache folder (use only for troubleshooting)')
-        .option('-p, --perf', 'runs a performance test')
+        .option('-p, --perf [path]', 'runs a performance test and optionally writes the result to the provided path')
         .option('-v, --verbose', 'logs verbose output to the console when errors occur');
 
     program.addHelpText('after', `
@@ -51,7 +51,7 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
     }
 
     if (opts.perf) {
-        CONFIG.performance = true;
+        CONFIG.performance = opts.perf;
 
         if (opts.runtime !== 'vscode.dev') {
             await git.whenReady;
