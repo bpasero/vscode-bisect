@@ -207,7 +207,7 @@ class Launcher {
                 // Watch out for a console log message such as "[perf] from 'code/timeOrigin' to 'code/didStartWorkbench': 1888ms"
                 // and extract the time
 
-                const matches = /\[perf\].+?(\d+)ms/.exec(msg.text());
+                const matches = /\[prof-timers\] (\d+)/.exec(msg.text());
                 const ellapsed = matches?.[1] ? parseInt(matches[1]) : undefined;
                 if (typeof ellapsed === 'number') {
                     resolve({ ellapsed, stop });
