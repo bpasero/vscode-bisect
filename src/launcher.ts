@@ -140,6 +140,10 @@ class Launcher {
             console.log(`${chalk.gray('[perf]')} best ellapsed: ${chalk.green(`${smallestEllapsed}ms`)}`);
         }
 
+        if (typeof CONFIG.performance === 'string') {
+            console.log(`${chalk.gray('[perf]')} writing results to ${chalk.green(`${CONFIG.performance}`)}`);
+        }
+
         return {
             ellapsed: smallestEllapsed,
             stop: NOOP_INSTANCE.stop

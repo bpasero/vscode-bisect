@@ -12,6 +12,7 @@ import { git } from './git';
 import { BUILD_FOLDER, CONFIG, LOGGER, ROOT, Runtime } from './constants';
 import { launcher } from './launcher';
 import { builds } from './builds';
+import { resolve } from 'path';
 
 module.exports = async function (argv: string[]): Promise<void> {
 
@@ -51,7 +52,11 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
     }
 
     if (opts.perf) {
-        CONFIG.performance = opts.perf;
+        if (typeof opts.perf === 'string') {
+            CONFIG.performance = resolve(opts.perf);
+        } else {
+            CONFIG.performance = true;
+        }
 
         if (opts.runtime !== 'vscode.dev') {
             await git.whenReady;
