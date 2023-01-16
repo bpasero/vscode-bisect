@@ -237,7 +237,7 @@ class Launcher {
 
         // folder=<path to VS Code>
         if (build.runtime === Runtime.WebLocal) {
-            url.searchParams.set('folder', GIT_VSCODE_FOLDER);
+            url.searchParams.set('folder', URI.file(GIT_VSCODE_FOLDER).path /* supports Windows & POSIX */);
         }
 
         const payload: string[][] = [];
