@@ -5,7 +5,7 @@
 
 import chalk from 'chalk';
 import { program, Option } from 'commander';
-import { rmSync } from 'fs';
+import { rmSync, truncateSync } from 'fs';
 import prompts from 'prompts';
 import { bisecter } from './bisect';
 import { git } from './git';
@@ -13,6 +13,7 @@ import { BUILD_FOLDER, CONFIG, LOGGER, ROOT, Runtime } from './constants';
 import { launcher } from './launcher';
 import { builds } from './builds';
 import { resolve } from 'path';
+import { exists } from './files';
 
 module.exports = async function (argv: string[]): Promise<void> {
 
@@ -54,6 +55,9 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
     if (opts.perf) {
         if (typeof opts.perf === 'string') {
             CONFIG.performance = resolve(opts.perf);
+            if (await exists(CONFIG.performance)) {
+                truncateSync(CONFIG.performance);
+            }
         } else {
             CONFIG.performance = true;
         }
