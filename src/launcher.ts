@@ -266,7 +266,6 @@ class Launcher {
         return url.href;
     }
 
-
     private async launchLocalWeb(build: IBuild, signal: AbortSignal): Promise<IInstance> {
         const instance = await this.launchLocalWebServer(build, signal);
         if (instance.url && !signal.aborted) {
