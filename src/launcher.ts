@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { EventEmitter } from 'events';
 import { join } from 'path';
 import { URI } from 'vscode-uri';
 import open from 'open';
@@ -40,6 +41,14 @@ interface IWebInstance extends IInstance {
      * URL to the web instance.
      */
     readonly url: string;
+}
+
+interface ISharedWebPerformanceRunner {
+    readonly onDidLogPerformance: EventEmitter;
+
+    goto(): Promise<void>;
+
+    stop(): Promise<void>;
 }
 
 class Launcher {
@@ -150,25 +159,36 @@ class Launcher {
         }
     }
 
+    private sharedWebPerformanceRunner: ISharedWebPerformanceRunner | undefined = undefined;
+
     private async launchWebPerformance(build: IBuild, signal: AbortSignal): Promise<IInstance> {
+
+        if (!this.sharedWebPerformanceRunner) {
+            this.sharedWebPerformanceRunner = await this.createWebPerformanceRunner(build);
+        }
+
+        return new Promise<IInstance>(resolve => {
+            this.sharedWebPerformanceRunner?.onDidLogPerformance.once('ellapsed', ellapsed => {
+                resolve({ ellapsed, stop: NOOP_INSTANCE.stop });
+            });
+
+            this.sharedWebPerformanceRunner?.goto();
+        });
+    }
+
+    private async createWebPerformanceRunner(build: IBuild): Promise<ISharedWebPerformanceRunner> {
         let url: string;
         let server: IWebInstance | undefined;
 
         // Web local: launch local web server
         if (build.runtime === Runtime.WebLocal) {
-            server = await this.launchLocalWebServer(build, signal);
+            server = await this.launchLocalWebServer(build, NO_ABORT_SIGNAL);
             url = this.buildWebPerformanceUrl(build, server.url);
         }
 
         // Web remote: use remote URL
         else {
             url = this.buildWebPerformanceUrl(build, VSCODE_DEV_URL(build.commit));
-        }
-
-        if (signal.aborted) {
-            server?.stop();
-
-            return NOOP_INSTANCE;
         }
 
         // Use playwright to open the page (either local or remote)
@@ -182,13 +202,6 @@ class Launcher {
                 browser.close(),
                 server?.stop()
             ]);
-        }
-
-        signal.addEventListener('abort', () => stop());
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
         }
 
         const page = await browser.newPage();
@@ -205,31 +218,39 @@ class Launcher {
             });
         }
 
-        return new Promise<IInstance>(resolve => {
-            page.on('console', async msg => {
-                const text = msg.text();
-                if (LOGGER.verbose) {
-                    console.error(`Playwright Console: ${text}`);
-                }
+        const emitter = new EventEmitter();
 
-                // Write full message to perf file if we got a path
-                if (typeof CONFIG.performance === 'string') {
-                    const matches = /\[prof-timers\] (.+)/.exec(text);
-                    if (matches?.[1]) {
-                        appendFileSync(CONFIG.performance, `${matches[1]}\n`);
-                    }
-                }
+        page.on('console', async msg => {
+            const text = msg.text();
+            if (LOGGER.verbose) {
+                console.error(`Playwright Console: ${text}`);
+            }
 
-                // Extract ellapsed time from message
-                const matches = /\[prof-timers\] (\d+)/.exec(text);
-                const ellapsed = matches?.[1] ? parseInt(matches[1]) : undefined;
-                if (typeof ellapsed === 'number') {
-                    resolve({ ellapsed, stop });
+            // Write full message to perf file if we got a path
+            if (typeof CONFIG.performance === 'string') {
+                const matches = /\[prof-timers\] (.+)/.exec(text);
+                if (matches?.[1]) {
+                    appendFileSync(CONFIG.performance, `${matches[1]}\n`);
                 }
-            });
+            }
 
-            page.goto(url);
+            // Extract ellapsed time from message
+            const matches = /\[prof-timers\] (\d+)/.exec(text);
+            const ellapsed = matches?.[1] ? parseInt(matches[1]) : undefined;
+            if (typeof ellapsed === 'number') {
+                emitter.emit('ellapsed', ellapsed);
+            }
         });
+
+        return {
+            onDidLogPerformance: emitter,
+            async goto() {
+                await page.goto(url);
+            },
+            async stop() {
+                await stop();
+            }
+        }
     }
 
     private buildWebPerformanceUrl(build: IBuild, baseUrl: string, startMark = 'code/timeOrigin', endMark = 'code/didStartWorkbench'): string {
@@ -258,7 +279,6 @@ class Launcher {
 
         return url.href;
     }
-
 
     private async launchLocalWeb(build: IBuild, signal: AbortSignal): Promise<IInstance> {
         const instance = await this.launchLocalWebServer(build, signal);
