@@ -10,7 +10,7 @@ import open from 'open';
 import playwright from 'playwright';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
-import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
+import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL, VSCODE_DEV_PERF_STARTUP_EDITOR } from './constants';
 import { appendFileSync, mkdirSync, rmSync } from 'fs';
 import { exists, readLastLineSync } from './files';
 import chalk from 'chalk';
@@ -192,8 +192,10 @@ class Launcher {
             return NOOP_INSTANCE;
         }
 
-        const page = await browser.newPage();
-        await page.setViewportSize({ width: 1200, height: 800 });
+        const page = await browser.newPage({
+            storageState: CONFIG.vscodeDevAuthState,
+            viewport: { width: 1200, height: 800 }
+        });
 
         if (LOGGER.verbose) {
             page.on('pageerror', error => console.error(`Playwright ERROR: page error: ${error}`));
@@ -246,9 +248,13 @@ class Launcher {
         // payload: profDurationMarkers
         payload.push(['profDurationMarkers', `${startMark},${endMark}`]);
 
-        // payload: openFile (web local only)
+        // payload: openFile (web only)
         if (build.runtime === Runtime.WebLocal) {
             payload.push(['openFile', URI.file(join(GIT_VSCODE_FOLDER, 'package.json')).with({ scheme: 'vscode-remote', authority: 'localhost:9888' }).toString(true)]);
+        } else if (build.runtime === Runtime.WebRemote) {
+            if (CONFIG.vscodeDevAuthState) {
+                payload.push(['openFile', VSCODE_DEV_PERF_STARTUP_EDITOR]); // with auth state, we can open a file from `github`
+            }
         }
 
         // payload: disable annoyers
@@ -259,7 +265,6 @@ class Launcher {
 
         return url.href;
     }
-
 
     private async launchLocalWeb(build: IBuild, signal: AbortSignal): Promise<IInstance> {
         const instance = await this.launchLocalWebServer(build, signal);
@@ -334,7 +339,7 @@ class Launcher {
             build: executable,
             folder: GIT_VSCODE_FOLDER,
             file: join(GIT_VSCODE_FOLDER, 'package.json'),
-            profAppendTimers: typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE 
+            profAppendTimers: typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE
         });
 
         return NOOP_INSTANCE;
