@@ -14,6 +14,7 @@ import { launcher } from './launcher';
 import { builds } from './builds';
 import { resolve } from 'path';
 import { exists } from './files';
+import { generateVscodeDevAuthState } from './auth';
 
 module.exports = async function (argv: string[]): Promise<void> {
 
@@ -25,6 +26,7 @@ module.exports = async function (argv: string[]): Promise<void> {
         verbose?: boolean;
         reset?: boolean;
         perf?: boolean | string;
+        token?: string;
         verifyMainBranch: boolean;
     }
 
@@ -38,6 +40,7 @@ module.exports = async function (argv: string[]): Promise<void> {
         .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
         .option('-r, --reset', 'deletes the cache folder (use only for troubleshooting)')
         .option('-p, --perf [path]', 'runs a performance test and optionally writes the result to the provided path')
+        .option('-t, --token <token>', `a GitHub token of scopes 'repo', 'workflow', 'user:email', 'read:user' to enable additional performance tests targetting web`)
         .option('-v, --verbose', 'logs verbose output to the console when errors occur');
 
     program.addHelpText('after', `
@@ -52,6 +55,12 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         LOGGER.verbose = true;
     }
 
+    if (opts.reset) {
+        try {
+            rmSync(ROOT, { recursive: true });
+        } catch (error) { }
+    }
+
     if (opts.perf) {
         if (typeof opts.perf === 'string') {
             CONFIG.performance = resolve(opts.perf);
@@ -62,6 +71,10 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
             CONFIG.performance = true;
         }
 
+        if (opts.token && opts.runtime === 'vscode.dev') {
+            CONFIG.vscodeDevAuthState = await generateVscodeDevAuthState(opts.token);
+        }
+
         if (opts.runtime !== 'vscode.dev') {
             await git.whenReady;
         }
@@ -69,12 +82,6 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
 
     if (opts.verifyMainBranch) {
         CONFIG.enableGitBranchChecks = true;
-    }
-
-    if (opts.reset) {
-        try {
-            rmSync(ROOT, { recursive: true });
-        } catch (error) { }
     }
 
     let badCommit = opts.bad;
