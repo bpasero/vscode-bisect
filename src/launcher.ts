@@ -328,12 +328,7 @@ class Launcher {
     }
 
     private async runDesktopPerformance(build: IBuild): Promise<IInstance> {
-        const executable = await builds.getBuildExecutable(build);
-
-        const executableExists = await exists(executable);
-        if (!executableExists) {
-            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
-        }
+        const executable = await this.getExecutablePath(build);
 
         await perf.run({
             build: executable,
@@ -375,13 +370,7 @@ class Launcher {
     }
 
     private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
-        const executable = await builds.getBuildExecutable(build);
-
-        const executableExists = await exists(executable);
-        if (!executableExists) {
-            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
-        }
-
+        const executable = await this.getExecutablePath(build);
         if (LOGGER.verbose) {
             console.log(`${chalk.gray('[build]')} starting build via ${chalk.green(executable)}...`);
         }
@@ -425,6 +414,17 @@ class Launcher {
             case Runtime.DesktopLocal:
                 return spawn(executable, args);
         }
+    }
+
+    private async getExecutablePath(build: IBuild): Promise<string> {
+        const executable = await builds.getBuildExecutable(build);
+
+        const executableExists = await exists(executable);
+        if (!executableExists) {
+            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
+        }
+
+        return executable;
     }
 }
 
