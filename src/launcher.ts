@@ -14,6 +14,7 @@ import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFA
 import { appendFileSync, mkdirSync, rmSync } from 'fs';
 import { exists, readLastLineSync } from './files';
 import chalk from 'chalk';
+import * as perf from '@vscode/vscode-perf';
 
 export interface IInstance {
 
@@ -89,7 +90,7 @@ class Launcher {
             case Runtime.DesktopLocal:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} starting desktop build ${chalk.green(build.commit)} multiple times and measuring performance...`);
-                    return this.measure(signal => this.launchElectron(build, signal));
+                    return this.runDesktopPerformance(build);
                 }
 
                 console.log(`${chalk.gray('[build]')} starting desktop build ${chalk.green(build.commit)}...`);
@@ -326,6 +327,19 @@ class Launcher {
         return NOOP_INSTANCE;
     }
 
+    private async runDesktopPerformance(build: IBuild): Promise<IInstance> {
+        const executable = await this.getExecutablePath(build);
+
+        await perf.run({
+            build: executable,
+            folder: GIT_VSCODE_FOLDER,
+            file: join(GIT_VSCODE_FOLDER, 'package.json'),
+            profAppendTimers: typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE 
+        });
+
+        return NOOP_INSTANCE;
+    }
+
     private async launchElectron(build: IBuild, signal: AbortSignal): Promise<IInstance> {
         const cp = await this.spawnBuild(build);
 
@@ -352,33 +366,11 @@ class Launcher {
             }
         });
 
-        let ellapsed: number | undefined;
-        if (CONFIG.performance) {
-
-            // Wait for instance to self-terminate
-            await new Promise<void>(resolve => {
-                cp.on('exit', () => resolve());
-            });
-
-            // Process performance file
-            const performanceFileLastLine = readLastLineSync(typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE);
-            const matches = /^(\d+)/.exec(performanceFileLastLine);
-            if (matches) {
-                ellapsed = parseInt(matches[1]);
-            }
-        }
-
-        return { ellapsed, stop }
+        return { stop }
     }
 
     private async spawnBuild(build: IBuild): Promise<ChildProcessWithoutNullStreams> {
-        const executable = await builds.getBuildExecutable(build);
-
-        const executableExists = await exists(executable);
-        if (!executableExists) {
-            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
-        }
-
+        const executable = await this.getExecutablePath(build);
         if (LOGGER.verbose) {
             console.log(`${chalk.gray('[build]')} starting build via ${chalk.green(executable)}...`);
         }
@@ -397,26 +389,11 @@ class Launcher {
 
                 '--disable-updates',
                 '--user-data-dir',
-                USER_DATA_FOLDER
+                USER_DATA_FOLDER,
+                '--no-cached-data',
+                '--disable-telemetry' // only disable telemetry when not running performance tests to be able to look at perf marks
             );
 
-            if (CONFIG.performance) {
-                const performanceFile = typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE;
-
-                args.push(
-                    '--disable-extensions',
-                    '--disable-features=CalculateNativeWinOcclusion',
-                    '--prof-append-timers',
-                    performanceFile,
-                    GIT_VSCODE_FOLDER,
-                    join(GIT_VSCODE_FOLDER, 'package.json')
-                );
-            } else {
-                args.push(
-                    '--no-cached-data',
-                    '--disable-telemetry' // only disable telemetry when not running performance tests to be able to look at perf marks
-                );
-            }
         }
 
         switch (build.runtime) {
@@ -437,6 +414,17 @@ class Launcher {
             case Runtime.DesktopLocal:
                 return spawn(executable, args);
         }
+    }
+
+    private async getExecutablePath(build: IBuild): Promise<string> {
+        const executable = await builds.getBuildExecutable(build);
+
+        const executableExists = await exists(executable);
+        if (!executableExists) {
+            throw new Error(`[build] unable to find executable ${executable} on disk. Is the archive corrupt?`);
+        }
+
+        return executable;
     }
 }
 

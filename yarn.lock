@@ -38,6 +38,14 @@
   dependencies:
     "@types/node" "*"
 
+"@vscode/vscode-perf@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@vscode/vscode-perf/-/vscode-perf-0.0.5.tgz#08e1308d744c977305d04e4f8230f58695f71c1f"
+  integrity sha512-MA03bCrycSQ8VM9Ln/56+zTGIUMMer3eZAX1Aj4h2APkrQFyKcVGX7539pKhabt0BXvsftJA0SuhbPYfnzLz0w==
+  dependencies:
+    chalk "^4.x"
+    commander "^9.4.0"
+
 ansi-regex@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-5.0.1.tgz#082cb2c89c9fe8659a311a53bd6a4dc5301db304"
