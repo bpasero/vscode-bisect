@@ -25,11 +25,9 @@ export const DEFAULT_PERFORMANCE_FILE = join(ROOT, 'startup-perf.txt');
 export const PERFORMANCE_RUNS = 10;
 export const PERFORMANCE_RUN_TIMEOUT = 60000;
 
-export const VSCODE_DEV_PERF_STARTUP_EDITOR = 'vscode-vfs://github/microsoft/vscode/package.json';
-
 export const VSCODE_DEV_URL = function (commit: string) {
     if (CONFIG.vscodeDevAuthState) {
-        return `https://insiders.vscode.dev/github/microsoft/vscode?vscode-version=${commit}`; // with auth state, we can use `github` route
+        return `https://insiders.vscode.dev/github/microsoft/vscode/blob/main/package.json?vscode-version=${commit}`; // with auth state, we can use `github` route
     }
 
     return `https://insiders.vscode.dev/?vscode-version=${commit}`;
