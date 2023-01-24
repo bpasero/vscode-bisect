@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { spawnSync } from 'child_process';
-import { promises, readFileSync } from 'fs';
+import { promises } from 'fs';
 import { join } from 'path';
 import { BUILD_FOLDER, Platform, platform } from './constants';
 
@@ -57,16 +57,4 @@ export async function unzip(source: string, destination: string): Promise<void> 
 
         spawnSync('tar', ['-xzf', source, '-C', destination]);
     }
-}
-
-export function readLastLineSync(path: string): string {
-    const contents = readFileSync(path, 'utf8');
-    const lines = contents.split(/\r?\n/);
-
-    let lastLine: string | undefined;
-    while (!lastLine && lines.length > 0) {
-        lastLine = lines.pop();
-    }
-
-    return lastLine ?? '';
 }

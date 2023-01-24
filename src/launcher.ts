@@ -12,7 +12,7 @@ import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
 import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
 import { appendFileSync, mkdirSync, rmSync } from 'fs';
-import { exists, readLastLineSync } from './files';
+import { exists } from './files';
 import chalk from 'chalk';
 import * as perf from '@vscode/vscode-perf';
 
