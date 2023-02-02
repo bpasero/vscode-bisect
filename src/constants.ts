@@ -5,7 +5,6 @@
 
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { IPlaywrightStorageState } from './types';
 
 export const ROOT = join(tmpdir(), 'vscode-bisect');
 
@@ -26,7 +25,7 @@ export const PERFORMANCE_RUNS = 10;
 export const PERFORMANCE_RUN_TIMEOUT = 60000;
 
 export const VSCODE_DEV_URL = function (commit: string) {
-    if (CONFIG.vscodeDevAuthState) {
+    if (CONFIG.token) {
         return `https://insiders.vscode.dev/github/microsoft/vscode/blob/main/package.json?vscode-version=${commit}`; // with auth state, we can use `github` route
     }
 
@@ -71,5 +70,5 @@ export const LOGGER = {
 export const CONFIG = {
     enableGitBranchChecks: false,
     performance: false as boolean | string,
-    vscodeDevAuthState: undefined as IPlaywrightStorageState | undefined
+    token: undefined as string | undefined,
 }
