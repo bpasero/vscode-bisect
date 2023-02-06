@@ -7,11 +7,10 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { join } from 'path';
 import { URI } from 'vscode-uri';
 import open from 'open';
-import playwright from 'playwright';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
 import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
-import { appendFileSync, mkdirSync, rmSync } from 'fs';
+import { mkdirSync, rmSync } from 'fs';
 import { exists } from './files';
 import chalk from 'chalk';
 import * as perf from '@vscode/vscode-perf';
@@ -133,16 +132,19 @@ class Launcher {
         }
 
 
-        await perf.run({
-            build: url,
-            runtime: 'web',
-            token: CONFIG.token,
-            folder: build.runtime === Runtime.WebLocal ? URI.file(GIT_VSCODE_FOLDER).path /* supports Windows & POSIX */ : undefined,
-            file: build.runtime === Runtime.WebLocal ? URI.file(join(GIT_VSCODE_FOLDER, 'package.json')).with({ scheme: 'vscode-remote', authority: 'localhost:9888' }).toString(true) : undefined,
-            durationMarkersFile: typeof CONFIG.performance === 'string' ? CONFIG.performance : undefined,
-        });
+        try {
+            await perf.run({
+                build: url,
+                runtime: 'web',
+                token: CONFIG.token,
+                folder: build.runtime === Runtime.WebLocal ? URI.file(GIT_VSCODE_FOLDER).path /* supports Windows & POSIX */ : undefined,
+                file: build.runtime === Runtime.WebLocal ? URI.file(join(GIT_VSCODE_FOLDER, 'package.json')).with({ scheme: 'vscode-remote', authority: 'localhost:9888' }).toString(true) : undefined,
+                durationMarkersFile: typeof CONFIG.performance === 'string' ? CONFIG.performance : undefined,
+            });
+        } finally {
+            server?.stop();
+        }
 
-        server?.stop();
 
         return NOOP_INSTANCE;
     }
