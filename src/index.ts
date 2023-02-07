@@ -14,7 +14,6 @@ import { launcher } from './launcher';
 import { builds } from './builds';
 import { resolve } from 'path';
 import { exists } from './files';
-import { generateVscodeDevAuthState } from './auth';
 
 module.exports = async function (argv: string[]): Promise<void> {
 
@@ -72,7 +71,7 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         }
 
         if (opts.token && opts.runtime === 'vscode.dev') {
-            CONFIG.vscodeDevAuthState = await generateVscodeDevAuthState(opts.token);
+            CONFIG.token = opts.token;
         }
 
         if (opts.runtime !== 'vscode.dev') {

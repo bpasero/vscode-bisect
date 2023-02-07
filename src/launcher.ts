@@ -7,11 +7,10 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { join } from 'path';
 import { URI } from 'vscode-uri';
 import open from 'open';
-import playwright from 'playwright';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
-import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
-import { appendFileSync, mkdirSync, rmSync } from 'fs';
+import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
+import { mkdirSync, rmSync } from 'fs';
 import { exists } from './files';
 import chalk from 'chalk';
 import * as perf from '@vscode/vscode-perf';
@@ -32,8 +31,6 @@ export interface IInstance {
 }
 
 const NOOP_INSTANCE: IInstance & IWebInstance = { stop: async () => { }, url: '' };
-
-const NO_ABORT_SIGNAL = new AbortController().signal;
 
 interface IWebInstance extends IInstance {
 
@@ -70,17 +67,17 @@ class Launcher {
             case Runtime.WebLocal:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} starting local web build ${chalk.green(build.commit)} multiple times and measuring performance...`);
-                    return this.measure(signal => this.launchWebPerformance(build, signal));
+                    return this.runWebPerformance(build);
                 }
 
                 console.log(`${chalk.gray('[build]')} starting local web build ${chalk.green(build.commit)}...`);
-                return this.launchLocalWeb(build, NO_ABORT_SIGNAL);
+                return this.launchLocalWeb(build);
 
             // Web (remote)
             case Runtime.WebRemote:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} opening insiders.vscode.dev ${chalk.green(build.commit)} multiple times and measuring performance...`);
-                    return this.measure(signal => this.launchWebPerformance(build, signal));
+                    return this.runWebPerformance(build);
                 }
 
                 console.log(`${chalk.gray('[build]')} opening insiders.vscode.dev ${chalk.green(build.commit)}...`);
@@ -94,184 +91,65 @@ class Launcher {
                 }
 
                 console.log(`${chalk.gray('[build]')} starting desktop build ${chalk.green(build.commit)}...`);
-                return this.launchElectron(build, NO_ABORT_SIGNAL);
+                return this.launchElectron(build);
         }
     }
 
-    private async measure(launcher: (signal: AbortSignal) => Promise<IInstance>): Promise<IInstance> {
-        let smallestEllapsed: number | undefined;
+    private async runDesktopPerformance(build: IBuild): Promise<IInstance> {
+        const executable = await this.getExecutablePath(build);
 
-        for (let i = 0; i < PERFORMANCE_RUNS; i++) {
-            console.log(`${chalk.gray('[perf]')} running session ${chalk.green(i + 1)} of ${chalk.green(PERFORMANCE_RUNS)}...`);
+        await perf.run({
+            build: executable,
+            folder: GIT_VSCODE_FOLDER,
+            file: join(GIT_VSCODE_FOLDER, 'package.json'),
+            profAppendTimers: typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE
+        });
 
-            // Perform a launch but timeout after 10 seconds
-            // to make sure these runs never hang
-
-            const abortController = new AbortController();
-            let timedOut = false;
-
-            const { ellapsed, stop } = await Promise.race<IInstance>([
-                new Promise(resolve => setTimeout(() => {
-                    timedOut = true;
-
-                    resolve(NOOP_INSTANCE);
-                }, PERFORMANCE_RUN_TIMEOUT)),
-                launcher(abortController.signal)
-            ]);
-
-            if (timedOut) {
-                console.log(`${chalk.red('[perf]')} timeout after ${chalk.green(`${PERFORMANCE_RUN_TIMEOUT}ms`)}`);
-                abortController.abort();
-            } else {
-                if (typeof ellapsed === 'number') {
-                    console.log(`${chalk.gray('[perf]')} ellapsed: ${chalk.green(`${ellapsed}ms`)}`);
-
-                    if (typeof smallestEllapsed !== 'number') {
-                        smallestEllapsed = ellapsed;
-                    } else if (smallestEllapsed > ellapsed) {
-                        smallestEllapsed = ellapsed;
-                    }
-                }
-            }
-
-            await stop();
-        }
-
-        if (typeof smallestEllapsed === 'number') {
-            console.log(`${chalk.gray('[perf]')} best ellapsed: ${chalk.green(`${smallestEllapsed}ms`)}`);
-        }
-
-        if (typeof CONFIG.performance === 'string') {
-            console.log(`${chalk.gray('[perf]')} writing results to ${chalk.green(`${CONFIG.performance}`)}`);
-        }
-
-        return {
-            ellapsed: smallestEllapsed,
-            stop: NOOP_INSTANCE.stop
-        }
+        return NOOP_INSTANCE;
     }
 
-    private async launchWebPerformance(build: IBuild, signal: AbortSignal): Promise<IInstance> {
+    private async runWebPerformance(build: IBuild): Promise<IInstance> {
         let url: string;
         let server: IWebInstance | undefined;
 
         // Web local: launch local web server
         if (build.runtime === Runtime.WebLocal) {
-            server = await this.launchLocalWebServer(build, signal);
-            url = this.buildWebPerformanceUrl(build, server.url);
+            server = await this.launchLocalWebServer(build);
+            url = server.url;
         }
 
         // Web remote: use remote URL
         else {
-            url = this.buildWebPerformanceUrl(build, VSCODE_DEV_URL(build.commit));
+            url = VSCODE_DEV_URL(build.commit);
         }
 
-        if (signal.aborted) {
+        try {
+            await perf.run({
+                build: url,
+                runtime: 'web',
+                token: CONFIG.token,
+                folder: build.runtime === Runtime.WebLocal ? URI.file(GIT_VSCODE_FOLDER).path /* supports Windows & POSIX */ : undefined,
+                file: build.runtime === Runtime.WebLocal ? URI.file(join(GIT_VSCODE_FOLDER, 'package.json')).with({ scheme: 'vscode-remote', authority: 'localhost:9888' }).toString(true) : undefined,
+                durationMarkersFile: typeof CONFIG.performance === 'string' ? CONFIG.performance : undefined,
+            });
+        } finally {
             server?.stop();
-
-            return NOOP_INSTANCE;
         }
 
-        // Use playwright to open the page (either local or remote)
-        // and watch out for the desired performance measurement to
-        // be printed to the console.
 
-        const browser = await playwright.chromium.launch({ headless: false });
-
-        function stop() {
-            return Promise.allSettled([
-                browser.close(),
-                server?.stop()
-            ]);
-        }
-
-        signal.addEventListener('abort', () => stop());
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
-        }
-
-        const page = await browser.newPage({
-            storageState: CONFIG.vscodeDevAuthState,
-            viewport: { width: 1200, height: 800 }
-        });
-
-        if (LOGGER.verbose) {
-            page.on('pageerror', error => console.error(`Playwright ERROR: page error: ${error}`));
-            page.on('crash', () => console.error('Playwright ERROR: page crash'));
-            page.on('requestfailed', e => console.error('Playwright ERROR: Request Failed', e.url(), e.failure()?.errorText));
-            page.on('response', response => {
-                if (response.status() >= 400) {
-                    console.error(`Playwright ERROR: HTTP status ${response.status()} for ${response.url()}`);
-                }
-            });
-        }
-
-        return new Promise<IInstance>(resolve => {
-            page.on('console', async msg => {
-                const text = msg.text();
-                if (LOGGER.verbose) {
-                    console.error(`Playwright Console: ${text}`);
-                }
-
-                // Write full message to perf file if we got a path
-                if (typeof CONFIG.performance === 'string') {
-                    const matches = /\[prof-timers\] (.+)/.exec(text);
-                    if (matches?.[1]) {
-                        appendFileSync(CONFIG.performance, `${matches[1]}\n`);
-                    }
-                }
-
-                // Extract ellapsed time from message
-                const matches = /\[prof-timers\] (\d+)/.exec(text);
-                const ellapsed = matches?.[1] ? parseInt(matches[1]) : undefined;
-                if (typeof ellapsed === 'number') {
-                    resolve({ ellapsed, stop });
-                }
-            });
-
-            page.goto(url);
-        });
+        return NOOP_INSTANCE;
     }
 
-    private buildWebPerformanceUrl(build: IBuild, baseUrl: string, startMark = 'code/timeOrigin', endMark = 'code/didStartWorkbench'): string {
-        const url = new URL(baseUrl);
-
-        // folder=<path to VS Code>
-        if (build.runtime === Runtime.WebLocal) {
-            url.searchParams.set('folder', URI.file(GIT_VSCODE_FOLDER).path /* supports Windows & POSIX */);
-        }
-
-        const payload: string[][] = [];
-
-        // payload: profDurationMarkers
-        payload.push(['profDurationMarkers', `${startMark},${endMark}`]);
-
-        // payload: openFile (web only)
-        if (build.runtime === Runtime.WebLocal) {
-            payload.push(['openFile', URI.file(join(GIT_VSCODE_FOLDER, 'package.json')).with({ scheme: 'vscode-remote', authority: 'localhost:9888' }).toString(true)]);
-        }
-
-        // payload: disable annoyers
-        payload.push(['skipWelcome', 'true']);
-        payload.push(['skipReleaseNotes', 'true']);
-
-        url.searchParams.set('payload', JSON.stringify(payload));
-
-        return url.href;
-    }
-
-    private async launchLocalWeb(build: IBuild, signal: AbortSignal): Promise<IInstance> {
-        const instance = await this.launchLocalWebServer(build, signal);
-        if (instance.url && !signal.aborted) {
+    private async launchLocalWeb(build: IBuild): Promise<IInstance> {
+        const instance = await this.launchLocalWebServer(build);
+        if (instance.url) {
             open(instance.url);
         }
 
         return instance;
     }
 
-    private async launchLocalWebServer(build: IBuild, signal: AbortSignal): Promise<IWebInstance> {
+    private async launchLocalWebServer(build: IBuild): Promise<IWebInstance> {
         const cp = await this.spawnBuild(build);
 
         async function stop() {
@@ -292,13 +170,6 @@ class Launcher {
                     }
                 });
             });
-        }
-
-        signal.addEventListener('abort', () => stop(), { once: true });
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
         }
 
         return new Promise<IWebInstance>(resolve => {
@@ -328,31 +199,11 @@ class Launcher {
         return NOOP_INSTANCE;
     }
 
-    private async runDesktopPerformance(build: IBuild): Promise<IInstance> {
-        const executable = await this.getExecutablePath(build);
-
-        await perf.run({
-            build: executable,
-            folder: GIT_VSCODE_FOLDER,
-            file: join(GIT_VSCODE_FOLDER, 'package.json'),
-            profAppendTimers: typeof CONFIG.performance === 'string' ? CONFIG.performance : DEFAULT_PERFORMANCE_FILE
-        });
-
-        return NOOP_INSTANCE;
-    }
-
-    private async launchElectron(build: IBuild, signal: AbortSignal): Promise<IInstance> {
+    private async launchElectron(build: IBuild): Promise<IInstance> {
         const cp = await this.spawnBuild(build);
 
         async function stop() {
             cp.kill();
-        }
-
-        signal.addEventListener('abort', () => stop(), { once: true });
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
         }
 
         cp.stdout.on('data', data => {
