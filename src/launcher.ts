@@ -9,7 +9,7 @@ import { URI } from 'vscode-uri';
 import open from 'open';
 import kill from 'tree-kill';
 import { builds, IBuild } from './builds';
-import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, PERFORMANCE_RUNS, PERFORMANCE_RUN_TIMEOUT, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
+import { CONFIG, DATA_FOLDER, EXTENSIONS_FOLDER, GIT_VSCODE_FOLDER, LOGGER, DEFAULT_PERFORMANCE_FILE, Platform, platform, Runtime, USER_DATA_FOLDER, VSCODE_DEV_URL } from './constants';
 import { mkdirSync, rmSync } from 'fs';
 import { exists } from './files';
 import chalk from 'chalk';
@@ -31,8 +31,6 @@ export interface IInstance {
 }
 
 const NOOP_INSTANCE: IInstance & IWebInstance = { stop: async () => { }, url: '' };
-
-const NO_ABORT_SIGNAL = new AbortController().signal;
 
 interface IWebInstance extends IInstance {
 
@@ -69,17 +67,17 @@ class Launcher {
             case Runtime.WebLocal:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} starting local web build ${chalk.green(build.commit)} multiple times and measuring performance...`);
-                    return this.runWebPerformance(build, new AbortController().signal);
+                    return this.runWebPerformance(build);
                 }
 
                 console.log(`${chalk.gray('[build]')} starting local web build ${chalk.green(build.commit)}...`);
-                return this.launchLocalWeb(build, NO_ABORT_SIGNAL);
+                return this.launchLocalWeb(build);
 
             // Web (remote)
             case Runtime.WebRemote:
                 if (CONFIG.performance) {
                     console.log(`${chalk.gray('[build]')} opening insiders.vscode.dev ${chalk.green(build.commit)} multiple times and measuring performance...`);
-                    return this.runWebPerformance(build, new AbortController().signal);
+                    return this.runWebPerformance(build);
                 }
 
                 console.log(`${chalk.gray('[build]')} opening insiders.vscode.dev ${chalk.green(build.commit)}...`);
@@ -93,7 +91,7 @@ class Launcher {
                 }
 
                 console.log(`${chalk.gray('[build]')} starting desktop build ${chalk.green(build.commit)}...`);
-                return this.launchElectron(build, NO_ABORT_SIGNAL);
+                return this.launchElectron(build);
         }
     }
 
@@ -110,13 +108,13 @@ class Launcher {
         return NOOP_INSTANCE;
     }
 
-    private async runWebPerformance(build: IBuild, signal: AbortSignal): Promise<IInstance> {
+    private async runWebPerformance(build: IBuild): Promise<IInstance> {
         let url: string;
         let server: IWebInstance | undefined;
 
         // Web local: launch local web server
         if (build.runtime === Runtime.WebLocal) {
-            server = await this.launchLocalWebServer(build, signal);
+            server = await this.launchLocalWebServer(build);
             url = server.url;
         }
 
@@ -124,13 +122,6 @@ class Launcher {
         else {
             url = VSCODE_DEV_URL(build.commit);
         }
-
-        if (signal.aborted) {
-            server?.stop();
-
-            return NOOP_INSTANCE;
-        }
-
 
         try {
             await perf.run({
@@ -149,16 +140,16 @@ class Launcher {
         return NOOP_INSTANCE;
     }
 
-    private async launchLocalWeb(build: IBuild, signal: AbortSignal): Promise<IInstance> {
-        const instance = await this.launchLocalWebServer(build, signal);
-        if (instance.url && !signal.aborted) {
+    private async launchLocalWeb(build: IBuild): Promise<IInstance> {
+        const instance = await this.launchLocalWebServer(build);
+        if (instance.url) {
             open(instance.url);
         }
 
         return instance;
     }
 
-    private async launchLocalWebServer(build: IBuild, signal: AbortSignal): Promise<IWebInstance> {
+    private async launchLocalWebServer(build: IBuild): Promise<IWebInstance> {
         const cp = await this.spawnBuild(build);
 
         async function stop() {
@@ -179,13 +170,6 @@ class Launcher {
                     }
                 });
             });
-        }
-
-        signal.addEventListener('abort', () => stop(), { once: true });
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
         }
 
         return new Promise<IWebInstance>(resolve => {
@@ -215,18 +199,11 @@ class Launcher {
         return NOOP_INSTANCE;
     }
 
-    private async launchElectron(build: IBuild, signal: AbortSignal): Promise<IInstance> {
+    private async launchElectron(build: IBuild): Promise<IInstance> {
         const cp = await this.spawnBuild(build);
 
         async function stop() {
             cp.kill();
-        }
-
-        signal.addEventListener('abort', () => stop(), { once: true });
-        if (signal.aborted) {
-            stop();
-
-            return NOOP_INSTANCE;
         }
 
         cp.stdout.on('data', data => {
