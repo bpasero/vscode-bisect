@@ -5,11 +5,9 @@
 
 import chalk from 'chalk';
 import { dirname, join } from 'path';
-import { Presets, SingleBar } from 'cli-progress';
-import { CONFIG, LOGGER, Platform, platform, Runtime } from './constants';
+import { LOGGER, Platform, platform, Runtime } from './constants';
 import { fileGet, jsonGet } from './fetch';
 import { exists, getBuildPath, unzip } from './files';
-import { git } from './git';
 
 export interface IBuild {
     runtime: Runtime;
@@ -37,10 +35,6 @@ class Builds {
                 throw new Error(`Provided good commit ${goodCommit} is not a released insiders build.`);
             }
 
-            if (CONFIG.enableGitBranchChecks && !await git.isOnMainBranch(goodCommit)) {
-                throw new Error(`Provided good commit ${goodCommit} does not seem to be on the main branch.`);
-            }
-
             goodCommitIndex = candidateGoodCommitIndex;
         }
 
@@ -48,10 +42,6 @@ class Builds {
             const candidateBadCommitIndex = this.indexOf(badCommit, allBuilds);
             if (typeof candidateBadCommitIndex !== 'number') {
                 throw new Error(`Provided bad commit ${badCommit} is not a released insiders build.`);
-            }
-
-            if (CONFIG.enableGitBranchChecks && !await git.isOnMainBranch(badCommit)) {
-                throw new Error(`Provided good commit ${badCommit} does not seem to be on the main branch.`);
             }
 
             badCommitIndex = candidateBadCommitIndex;
@@ -64,37 +54,8 @@ class Builds {
         // Build a range based on the bad and good commits if any
         const buildsInRange = allBuilds.slice(badCommitIndex, goodCommitIndex + 1);
 
-        // Optional branch checking
-        if (CONFIG.enableGitBranchChecks) {
-            return this.filterMainBuilds(buildsInRange);
-        }
-
         // Drop those builds that are not on main branch
         return buildsInRange;
-    }
-
-    private async filterMainBuilds(builds: IBuild[]): Promise<IBuild[]> {
-
-        // Warm up git
-        await git.whenReady;
-
-        console.log(`${chalk.gray('[git]')} checking ${chalk.green(builds.length)} builds branch origin to be ${chalk.green('main')} (this will be slow for the first time and then use cached lookups)...`);
-
-        const progressBar = new SingleBar({ clearOnComplete: true }, Presets.rect);
-        progressBar.start(builds.length, 0);
-
-        const buildsOnMainBranch: IBuild[] = [];
-        for (const build of builds) {
-            if (await git.isOnMainBranch(build.commit)) {
-                buildsOnMainBranch.push(build);
-            }
-
-            progressBar.increment();
-        }
-
-        progressBar.stop();
-
-        return buildsOnMainBranch;
     }
 
     private indexOf(commit: string, builds: IBuild[]): number | undefined {
@@ -109,7 +70,7 @@ class Builds {
     }
 
     private async fetchAllBuilds(runtime: Runtime): Promise<IBuild[]> {
-        const commits = await jsonGet<Array<string>>(`https://update.code.visualstudio.com/api/commits/insider/${this.getBuildApiName(runtime)}`);
+        const commits = await jsonGet<Array<string>>(`https://update.code.visualstudio.com/api/commits/insider/${this.getBuildApiName(runtime)}`, { 'x-vscode-released': 'false' });
 
         return commits.map(commit => ({ commit, runtime }));
     }
