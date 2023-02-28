@@ -26,7 +26,6 @@ module.exports = async function (argv: string[]): Promise<void> {
         reset?: boolean;
         perf?: boolean | string;
         token?: string;
-        verifyMainBranch: boolean;
     }
 
     program.addHelpText('beforeAll', `Version: ${require('../package.json').version}\n`);
@@ -36,7 +35,6 @@ module.exports = async function (argv: string[]): Promise<void> {
         .option('-g, --good <commit>', 'commit hash of a released insiders build that does not reproduce the issue')
         .option('-b, --bad <commit>', 'commit hash of a released insiders build that reproduces the issue')
         .option('-c, --commit <commit|latest>', 'commit hash of a specific insiders build to test or "latest" released build (supercedes -g and -b)')
-        .option('--verify-main-branch', 'ensure only commits from "main" branch are tested (very slow on first run!)')
         .option('--reset', 'deletes the cache folder (use only for troubleshooting)')
         .option('-p, --perf [path]', 'runs a performance test and optionally writes the result to the provided path')
         .option('-t, --token <token>', `a GitHub token of scopes 'repo', 'workflow', 'user:email', 'read:user' to enable additional performance tests targetting web`)
@@ -77,10 +75,6 @@ Builds are stored and cached on disk in ${BUILD_FOLDER}
         if (opts.runtime !== 'vscode.dev') {
             await git.whenReady;
         }
-    }
-
-    if (opts.verifyMainBranch) {
-        CONFIG.enableGitBranchChecks = true;
     }
 
     let badCommit = opts.bad;

@@ -68,7 +68,6 @@ export const LOGGER = {
 }
 
 export const CONFIG = {
-    enableGitBranchChecks: false,
     performance: false as boolean | string,
     token: undefined as string | undefined,
 }
