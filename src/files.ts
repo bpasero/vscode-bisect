@@ -4,9 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { spawnSync } from 'child_process';
-import { promises } from 'fs';
+import { mkdirSync, promises, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { BUILD_FOLDER, Platform, platform } from './constants';
+import { unzipSync } from 'fflate';
 
 export async function exists(path: string): Promise<boolean> {
     try {
@@ -33,14 +34,14 @@ export async function unzip(source: string, destination: string): Promise<void> 
 
         // Windows
         if (platform === Platform.WindowsX64 || platform === Platform.WindowsArm) {
-            spawnSync('powershell.exe', [
-                '-NoProfile',
-                '-ExecutionPolicy', 'Bypass',
-                '-NonInteractive',
-                '-NoLogo',
-                '-Command',
-                `Microsoft.PowerShell.Archive\\Expand-Archive -Path "${source}" -DestinationPath "${destination}"`
-            ]);
+            const unzipped = unzipSync(readFileSync(source));
+            for (const entry of Object.keys(unzipped)) {
+                if (entry.endsWith('/')) {
+                    mkdirSync(join(destination, entry), { recursive: true });
+                } else {
+                    writeFileSync(join(destination, entry), unzipped[entry]);
+                }
+            }
         }
 
         // macOS
