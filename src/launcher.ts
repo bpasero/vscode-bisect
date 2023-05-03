@@ -231,8 +231,6 @@ class Launcher {
             '--accept-server-license-terms',
             '--extensions-dir',
             EXTENSIONS_FOLDER,
-            '--disable-workspace-trust',
-            '--skip-welcome',
             '--skip-release-notes'
         ];
 
