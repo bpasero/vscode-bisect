@@ -126,12 +126,17 @@ ${chalk.green(`git bisect start && git bisect bad ${badBuild.commit} && git bise
                 message: `Is ${build.commit} good or bad?`,
                 choices: [
                     { title: 'Good', value: 'good' },
-                    { title: 'Bad', value: 'bad' }
+                    { title: 'Bad', value: 'bad' },
+                    { title: 'Retry', value: 'retry' }
                 ]
             }
         ]);
 
         await instance.stop();
+
+        if (response.status === 'retry') {
+            return this.tryBuild(build);
+        }
 
         return response.status === 'good' ? BisectResponse.Good : response.status === 'bad' ? BisectResponse.Bad : BisectResponse.Quit;
     }
