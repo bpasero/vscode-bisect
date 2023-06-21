@@ -70,7 +70,7 @@ class Builds {
     }
 
     private async fetchAllBuilds(runtime: Runtime): Promise<IBuild[]> {
-        const commits = await jsonGet<Array<string>>(`https://update.code.visualstudio.com/api/commits/insider/${this.getBuildApiName(runtime)}`, { 'x-vscode-released': 'false' });
+        const commits = await jsonGet<Array<string>>(`https://update.code.visualstudio.com/api/commits/insider/${this.getBuildApiName(runtime)}?released=false`);
 
         return commits.map(commit => ({ commit, runtime }));
     }
